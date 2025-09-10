@@ -1,96 +1,45 @@
 package utils
 
 import (
-	"crypto/rand"
-	"crypto/subtle"
-	"encoding/base64"
-	"fmt"
-	"strings"
-
-	"golang.org/x/crypto/argon2"
+	"golang.org/x/crypto/bcrypt"
 )
 
-// PasswordConfig 密码哈希配置
-type PasswordConfig struct {
-	Time    uint32
-	Memory  uint32
-	Threads uint8
-	KeyLen  uint32
-}
+// DefaultCost bcrypt 默认成本因子（范围 4-31，值越大计算越慢，安全性越高）
+const DefaultCost = 10
 
-// DefaultPasswordConfig 默认密码配置
-var DefaultPasswordConfig = &PasswordConfig{
-	Time:    1,
-	Memory:  64 * 1024,
-	Threads: 4,
-	KeyLen:  32,
-}
-
-// HashPassword 哈希密码
+// HashPassword 使用 bcrypt 哈希密码
+// 参数：password 原始明文密码
+// 返回：加密后的哈希字符串 / 错误信息
 func HashPassword(password string) (string, error) {
-	// 生成随机盐
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
+	// 1. 生成 bcrypt 哈希（自动生成 16 字节随机盐）
+	// GenerateFromPassword 会自动处理盐值和成本因子
+	hashBytes, err := bcrypt.GenerateFromPassword(
+		[]byte(password), // 原始密码字节
+		DefaultCost,      // 成本因子（推荐 10-12，平衡安全与性能）
+	)
+	if err != nil {
 		return "", err
 	}
 
-	// 使用Argon2id算法哈希密码
-	hash := argon2.IDKey([]byte(password), salt, DefaultPasswordConfig.Time, DefaultPasswordConfig.Memory, DefaultPasswordConfig.Threads, DefaultPasswordConfig.KeyLen)
-
-	// 编码为base64
-	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
-	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
-
-	// 返回格式化的哈希字符串
-	encodedHash := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
-		argon2.Version, DefaultPasswordConfig.Memory, DefaultPasswordConfig.Time, DefaultPasswordConfig.Threads, b64Salt, b64Hash)
-
-	return encodedHash, nil
+	// 2. 直接返回哈希字符串（bcrypt 哈希已包含盐值和成本因子，格式为 "$2a$10$盐值$哈希"）
+	return string(hashBytes), nil
 }
 
-// VerifyPassword 验证密码
+// VerifyPassword 验证 bcrypt 哈希与明文密码是否匹配
+// 参数：password 明文密码 / encodedHash 存储的 bcrypt 哈希
+// 返回：是否匹配 / 错误信息
 func VerifyPassword(password, encodedHash string) (bool, error) {
-	// 解析哈希字符串
-	parts := strings.Split(encodedHash, "$")
-	if len(parts) != 6 {
-		return false, fmt.Errorf("invalid hash format")
-	}
+	// 1. 调用 CompareHashAndPassword 验证（自动解析哈希中的盐值和成本因子）
+	err := bcrypt.CompareHashAndPassword(
+		[]byte(encodedHash), // 存储的哈希字节
+		[]byte(password),    // 待验证的明文密码字节
+	)
 
-	// 检查算法
-	if parts[1] != "argon2id" {
-		return false, fmt.Errorf("unsupported algorithm")
+	// 2. 处理结果（err 为 nil 表示验证成功）
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		// 密码不匹配
+		return false, nil
 	}
-
-	// 解析版本
-	var version int
-	if _, err := fmt.Sscanf(parts[2], "v=%d", &version); err != nil {
-		return false, err
-	}
-	if version != argon2.Version {
-		return false, fmt.Errorf("incompatible version")
-	}
-
-	// 解析参数
-	var memory, time uint32
-	var threads uint8
-	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &memory, &time, &threads); err != nil {
-		return false, err
-	}
-
-	// 解码盐和哈希
-	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
-	if err != nil {
-		return false, err
-	}
-
-	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
-	if err != nil {
-		return false, err
-	}
-
-	// 使用相同参数重新计算哈希
-	otherHash := argon2.IDKey([]byte(password), salt, time, memory, threads, uint32(len(hash)))
-
-	// 使用常量时间比较
-	return subtle.ConstantTimeCompare(hash, otherHash) == 1, nil
+	// 其他错误（如哈希格式无效）
+	return err == nil, err
 }

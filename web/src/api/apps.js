@@ -2,7 +2,12 @@ import api from './index'
 
 // 获取应用列表
 export const getApps = (params = {}) => {
-  return api.get('/apps', { params })
+  return api.get('/apps', { params }).then((resp) => {
+    return {
+      apps: resp?.data || [],
+      total: resp?.pagination?.total || 0,
+    }
+  })
 }
 
 // 获取应用详情
