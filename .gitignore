@@ -108,9 +108,9 @@ Thumbs.db
 docs/build/
 docs/_build/
 
-# 配置文件备份
-config/*.ini.bak
-config/*.conf.bak
+# 配置文件备份（只排除备份文件，不排除正常配置文件）
+config/*.bak
+config/*.backup
 
 # 脚本临时文件
 scripts/*.tmp
