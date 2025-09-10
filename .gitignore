@@ -1,0 +1,141 @@
+# 编译产物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+auth_center
+auth-center
+
+# 测试文件
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# 依赖管理
+vendor/
+go.sum.bak
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 环境配置文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# Redis 数据文件
+dump.rdb
+
+# 前端构建产物
+web/dist/
+web/node_modules/
+web/.vite/
+web/.cache/
+
+# 前端依赖
+web/package-lock.json
+web/yarn.lock
+web/pnpm-lock.yaml
+
+# 前端环境变量
+web/.env
+web/.env.local
+web/.env.development.local
+web/.env.test.local
+web/.env.production.local
+
+# 前端日志
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+web/pnpm-debug.log*
+
+# 前端测试覆盖率
+web/coverage/
+
+# 前端构建缓存
+web/.nuxt/
+web/.next/
+web/.vuepress/dist/
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.lnk
+
+# 备份文件
+*.bak
+*.backup
+*.old
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+
+# 文档生成
+docs/build/
+docs/_build/
+
+# 配置文件备份
+config/*.ini.bak
+config/*.conf.bak
+
+# 脚本临时文件
+scripts/*.tmp
+scripts/*.temp
+
+# 测试数据
+test_data/
+test_files/
+
+# 性能分析文件
+*.prof
+*.pprof
+
+# 内存分析文件
+*.mem
+
+# 竞态检测文件
+*.race
+
+# 构建缓存
+.cache/
+build/
+dist/
+
+# 其他
+*.pid
+*.seed
+*.pid.lock

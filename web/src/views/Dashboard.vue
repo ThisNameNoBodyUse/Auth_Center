@@ -1,0 +1,266 @@
+<template>
+  <div class="dashboard">
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon apps">
+              <el-icon><Grid /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.apps }}</div>
+              <div class="stat-label">应用总数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon users">
+              <el-icon><User /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.users }}</div>
+              <div class="stat-label">用户总数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon roles">
+              <el-icon><UserFilled /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.roles }}</div>
+              <div class="stat-label">角色总数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon permissions">
+              <el-icon><Key /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.permissions }}</div>
+              <div class="stat-label">权限总数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="content-row">
+      <el-col :span="16">
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>应用使用统计</span>
+              <el-button type="text" @click="refreshData">刷新</el-button>
+            </div>
+          </template>
+          <div class="chart-container">
+            <el-empty v-if="!chartData.length" description="暂无数据" />
+            <div v-else class="chart-placeholder">
+              <p>图表数据加载中...</p>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="8">
+        <el-card class="recent-card">
+          <template #header>
+            <span>最近创建的应用</span>
+          </template>
+          <div class="recent-list">
+            <div v-for="app in recentApps" :key="app.id" class="recent-item">
+              <div class="app-info">
+                <div class="app-name">{{ app.name }}</div>
+                <div class="app-id">{{ app.app_id }}</div>
+              </div>
+              <div class="app-status">
+                <el-tag :type="app.status === 1 ? 'success' : 'danger'">
+                  {{ app.status === 1 ? '启用' : '禁用' }}
+                </el-tag>
+              </div>
+            </div>
+            <el-empty v-if="!recentApps.length" description="暂无数据" />
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { getApps } from '@/api/apps'
+
+const stats = ref({
+  apps: 0,
+  users: 0,
+  roles: 0,
+  permissions: 0
+})
+
+const chartData = ref([])
+const recentApps = ref([])
+
+const loadStats = async () => {
+  try {
+    const response = await getApps()
+    stats.value.apps = response.apps?.length || 0
+    recentApps.value = response.apps?.slice(0, 5) || []
+  } catch (error) {
+    console.error('Failed to load stats:', error)
+  }
+}
+
+const refreshData = () => {
+  loadStats()
+}
+
+onMounted(() => {
+  loadStats()
+})
+</script>
+
+<style scoped>
+.dashboard {
+  padding: 0;
+}
+
+.stats-row {
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+}
+
+.stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  margin-right: 16px;
+}
+
+.stat-icon.apps {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-icon.users {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-icon.roles {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-icon.permissions {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.content-row {
+  margin-bottom: 20px;
+}
+
+.chart-card,
+.recent-card {
+  height: 400px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-container {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-placeholder {
+  text-align: center;
+  color: #999;
+}
+
+.recent-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.recent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.recent-item:last-child {
+  border-bottom: none;
+}
+
+.app-info {
+  flex: 1;
+}
+
+.app-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.app-id {
+  font-size: 12px;
+  color: #999;
+}
+
+.app-status {
+  margin-left: 12px;
+}
+</style>

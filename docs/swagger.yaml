@@ -1,0 +1,721 @@
+basePath: /api/v1
+definitions:
+  service.AppListResponse:
+    properties:
+      app_id:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  service.CreateAppRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  service.CreateAppResponse:
+    properties:
+      app_id:
+        type: string
+      app_secret:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: integer
+    type: object
+  service.LoginRequest:
+    properties:
+      app_id:
+        type: string
+      code:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      username:
+        type: string
+    required:
+    - app_id
+    type: object
+  service.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/service.UserInfo'
+    type: object
+  service.LogoutRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  service.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  service.RegisterRequest:
+    properties:
+      app_id:
+        type: string
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+      username:
+        type: string
+    required:
+    - app_id
+    - password
+    - username
+    type: object
+  service.RoleInfo:
+    properties:
+      code:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  service.UpdateAppRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      status:
+        type: integer
+    type: object
+  service.UserInfo:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      info:
+        type: string
+      phone:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/service.RoleInfo'
+        type: array
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: 提供统一的认证授权服务，支持多应用、多租户
+  title: 认证授权中心 API
+  version: "1.0"
+paths:
+  /apps:
+    get:
+      description: 分页获取应用列表
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 应用列表
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取应用列表
+      tags:
+      - 应用管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的应用并获取应用凭据
+      parameters:
+      - description: 创建应用请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateAppRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/service.CreateAppResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: 应用名称已存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建应用
+      tags:
+      - 应用管理
+  /apps/{app_id}:
+    delete:
+      description: 删除应用（软删除）
+      parameters:
+      - description: 应用ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 应用不存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 删除应用
+      tags:
+      - 应用管理
+    get:
+      description: 根据应用ID获取应用详细信息
+      parameters:
+      - description: 应用ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 应用信息
+          schema:
+            $ref: '#/definitions/service.AppListResponse'
+        "404":
+          description: 应用不存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取应用信息
+      tags:
+      - 应用管理
+    put:
+      consumes:
+      - application/json
+      description: 更新应用信息
+      parameters:
+      - description: 应用ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      - description: 更新应用请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateAppRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 应用不存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新应用
+      tags:
+      - 应用管理
+  /apps/{app_id}/regenerate-secret:
+    post:
+      description: 重新生成应用密钥
+      parameters:
+      - description: 应用ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 新密钥
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 应用不存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 重新生成应用密钥
+      tags:
+      - 应用管理
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录获取访问令牌
+      parameters:
+      - description: 登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/service.LoginResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 认证失败
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 用户登录
+      tags:
+      - 认证
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 用户登出，使令牌失效
+      parameters:
+      - description: 登出请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登出成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 令牌无效
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 用户登出
+      tags:
+      - 认证
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 使用刷新令牌获取新的访问令牌
+      parameters:
+      - description: 刷新令牌请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功
+          schema:
+            $ref: '#/definitions/service.LoginResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 令牌无效
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 刷新访问令牌
+      tags:
+      - 认证
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 用户注册新账户
+      parameters:
+      - description: 注册请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 注册成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: 用户已存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 用户注册
+      tags:
+      - 认证
+  /auth/user:
+    get:
+      description: 获取当前登录用户的详细信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户信息
+          schema:
+            $ref: '#/definitions/service.UserInfo'
+        "401":
+          description: 未认证
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 用户不存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户信息
+      tags:
+      - 认证
+  /permissions/check:
+    get:
+      description: 检查用户是否具有指定权限
+      parameters:
+      - description: 权限代码
+        in: query
+        name: permission
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 权限检查结果
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 未认证
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 检查权限
+      tags:
+      - 权限管理
+  /permissions/check-api:
+    get:
+      description: 检查用户是否有权限访问指定API
+      parameters:
+      - description: API路径
+        in: query
+        name: path
+        required: true
+        type: string
+      - description: HTTP方法
+        in: query
+        name: method
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 权限检查结果
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 未认证
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 检查API权限
+      tags:
+      - 权限管理
+  /permissions/roles:
+    get:
+      description: 获取当前用户的所有角色
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户角色列表
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未认证
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户角色列表
+      tags:
+      - 权限管理
+  /permissions/user:
+    get:
+      description: 获取当前用户的所有权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户权限列表
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未认证
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户权限列表
+      tags:
+      - 权限管理
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
