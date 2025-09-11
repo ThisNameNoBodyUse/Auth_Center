@@ -153,20 +153,25 @@ CREATE TABLE IF NOT EXISTS tokens (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) COMMENT='令牌记录';
 
+
+
 -- 插入默认应用
 INSERT INTO applications (name, app_id, app_secret, description, status) VALUES
-('默认应用', 'default-app', 'default-secret', '系统默认应用', 1)
+('默认应用', 'default-app', 'default-secret', '系统默认应用', 1),
+('系统管理应用', 'system-admin', 'system-admin-secret-key-change-in-production', '认证授权中心系统管理应用，用于管理所有应用', 1)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- 插入默认 provider（默认账号密码登录）
 INSERT INTO providers (app_id, login_method) VALUES
-('default-app', 0)
+('default-app', 0),
+('system-admin', 0)
 ON DUPLICATE KEY UPDATE login_method=VALUES(login_method);
 
 -- 插入默认角色
 INSERT INTO roles (app_id, name, code, description, status) VALUES
 ('default-app', '管理员', 'admin', '系统管理员角色', 1),
-('default-app', '普通用户', 'user', '普通用户角色', 1)
+('default-app', '普通用户', 'user', '普通用户角色', 1),
+('system-admin', '超级管理员', 'super_admin', '系统超级管理员，拥有所有权限', 1)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- 插入默认权限
@@ -175,7 +180,13 @@ INSERT INTO permissions (app_id, name, code, resource, action, description, stat
 ('default-app', '用户查看', 'user:read', 'user', 'read', '用户查看权限', 1),
 ('default-app', '用户创建', 'user:create', 'user', 'create', '用户创建权限', 1),
 ('default-app', '用户更新', 'user:update', 'user', 'update', '用户更新权限', 1),
-('default-app', '用户删除', 'user:delete', 'user', 'delete', '用户删除权限', 1)
+('default-app', '用户删除', 'user:delete', 'user', 'delete', '用户删除权限', 1),
+('system-admin', '应用管理', 'app_manage', 'application', 'all', '应用的所有操作权限', 1),
+('system-admin', '用户管理', 'user_manage', 'user', 'all', '用户的所有操作权限', 1),
+('system-admin', '角色管理', 'role_manage', 'role', 'all', '角色的所有操作权限', 1),
+('system-admin', '权限管理', 'permission_manage', 'permission', 'all', '权限的所有操作权限', 1),
+('system-admin', 'API管理', 'api_manage', 'api', 'all', 'API的所有操作权限', 1),
+('system-admin', '系统监控', 'system_monitor', 'system', 'read', '系统监控权限', 1)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- 插入默认API
@@ -183,7 +194,10 @@ INSERT INTO apis (app_id, path, method, description, permission_id, status) VALU
 ('default-app', '/api/v1/users', 'GET', '获取用户列表', 2, 1),
 ('default-app', '/api/v1/users', 'POST', '创建用户', 3, 1),
 ('default-app', '/api/v1/users/:id', 'PUT', '更新用户', 4, 1),
-('default-app', '/api/v1/users/:id', 'DELETE', '删除用户', 5, 1)
+('default-app', '/api/v1/users/:id', 'DELETE', '删除用户', 5, 1),
+('system-admin', '/api/v1/apps', 'POST', '创建应用', 6, 1),
+('system-admin', '/api/v1/apps/*', 'PUT', '更新应用', 6, 1),
+('system-admin', '/api/v1/apps/*', 'DELETE', '删除应用', 6, 1)
 ON DUPLICATE KEY UPDATE description=VALUES(description);
 
 -- 为管理员角色分配所有权限
@@ -199,3 +213,23 @@ ON DUPLICATE KEY UPDATE permission_id=VALUES(permission_id);
 INSERT INTO role_permissions (role_id, permission_id, app_id) VALUES
 (2, 2, 'default-app')
 ON DUPLICATE KEY UPDATE permission_id=VALUES(permission_id);
+
+-- 为超级管理员角色分配所有系统管理权限
+INSERT INTO role_permissions (role_id, permission_id, app_id) VALUES
+(3, 6, 'system-admin'),
+(3, 7, 'system-admin'),
+(3, 8, 'system-admin'),
+(3, 9, 'system-admin'),
+(3, 10, 'system-admin'),
+(3, 11, 'system-admin')
+ON DUPLICATE KEY UPDATE permission_id=VALUES(permission_id);
+
+-- 插入超级管理员用户
+INSERT INTO users (app_id, username, email, phone, password, is_super_admin, status) VALUES
+('system-admin', 'superadmin', 'admin@auth-center.com', '', '$2b$10$UtbwZjygOigggJA.7So9v.cu0S1B.ibbBUNxdtA8GmwFVi86cZSye', 1, 1)
+ON DUPLICATE KEY UPDATE username=VALUES(username);
+
+-- 为超级管理员用户分配超级管理员角色
+INSERT INTO user_roles (user_id, role_id, app_id) VALUES
+(1, 3, 'system-admin')
+ON DUPLICATE KEY UPDATE role_id=VALUES(role_id);
