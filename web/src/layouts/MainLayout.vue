@@ -19,7 +19,7 @@
           <span>仪表盘</span>
         </el-menu-item>
         
-        <el-menu-item index="/apps">
+        <el-menu-item index="/apps" v-if="isSystemAdmin">
           <el-icon><Grid /></el-icon>
           <span>应用管理</span>
         </el-menu-item>
@@ -39,7 +39,7 @@
           <span>权限管理</span>
         </el-menu-item>
         
-        <el-menu-item index="/settings">
+        <el-menu-item index="/settings" v-if="isSystemAdmin">
           <el-icon><Setting /></el-icon>
           <span>系统设置</span>
         </el-menu-item>
@@ -108,6 +108,8 @@ const isCollapse = ref(false)
 
 const user = computed(() => authStore.user)
 const userAvatar = computed(() => user.value?.avatar || '')
+const isSystemAdmin = computed(() => authStore.loginType === 'system' || user.value?.admin_type === 'system')
+const isAppAdmin = computed(() => authStore.loginType === 'app' || user.value?.admin_type === 'app')
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value

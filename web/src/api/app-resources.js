@@ -66,3 +66,8 @@ export const assignUserRoles = (id, data) => {
 export const getUserRoles = (id) => {
   return api.get(`/app/users/${id}/roles`)
 }
+
+// 当前应用信息（仅应用级管理员）
+export const getSelfApp = () => {
+  return api.get('/app/self').then((resp) => resp.data)
+}

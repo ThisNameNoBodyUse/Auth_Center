@@ -46,7 +46,8 @@ api.interceptors.response.use(
           authStore.logoutAction()
           break
         case 403:
-          ElMessage.error('权限不足')
+          // 静默处理权限不足，交由各页面做降级展示（如隐藏内容/显示空态）
+          // 不弹出全局错误提示，避免干扰页面体验
           break
         case 404:
           ElMessage.error('请求的资源不存在')

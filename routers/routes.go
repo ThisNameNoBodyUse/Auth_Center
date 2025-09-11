@@ -68,6 +68,9 @@ func InitRoutes(r *gin.Engine) {
 		appResources := v1.Group("/app")
 		appResources.Use(middleware.SystemAdminAuthMiddleware(), middleware.FlexibleSystemAdminMiddleware())
 		{
+			// 当前应用信息（仅应用级管理员可用）
+			appResources.GET("/self", appResourceController.GetSelfApp)
+
 			// 角色管理
 			roles := appResources.Group("/roles")
 			{

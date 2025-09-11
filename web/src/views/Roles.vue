@@ -23,9 +23,10 @@
           v-model="searchForm.app_id"
           placeholder="选择应用"
           style="width: 150px; margin-right: 10px"
+          :disabled="isAppAdmin"
           clearable
         >
-          <el-option label="全部应用" value="" />
+          <el-option v-if="!isAppAdmin" label="全部应用" value="" />
           <el-option
             v-for="app in apps"
             :key="app.app_id"
@@ -126,7 +127,7 @@
         label-width="100px"
       >
         <el-form-item label="所属应用" prop="app_id">
-          <el-select v-model="form.app_id" placeholder="请选择应用" style="width: 100%">
+          <el-select v-model="form.app_id" placeholder="请选择应用" style="width: 100%" :disabled="isAppAdmin">
             <el-option
               v-for="app in apps"
               :key="app.app_id"
@@ -202,10 +203,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
-import { getRoles, createRole, updateRole, deleteRole, assignRolePermissions, getRolePermissions } from '@/api/app-resources'
+import { getRoles, createRole, updateRole, deleteRole, assignRolePermissions, getRolePermissions, getSelfApp } from '@/api/app-resources'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -263,6 +265,13 @@ const treeProps = {
   label: 'name'
 }
 
+// 认证与身份
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
+const isSystemAdmin = computed(() => authStore.loginType === 'system' || user.value?.admin_type === 'system')
+const isAppAdmin = computed(() => authStore.loginType === 'app' || user.value?.admin_type === 'app')
+const currentAppId = computed(() => user.value?.app_id || '')
+
 // 获取应用名称
 const getAppName = (appId) => {
   const app = apps.value.find(a => a.app_id === appId)
@@ -272,10 +281,23 @@ const getAppName = (appId) => {
 // 加载应用列表
 const loadApps = async () => {
   try {
+    if (isAppAdmin.value && currentAppId.value) {
+      // 拉取自身应用名称
+      try {
+        const app = await getSelfApp()
+        apps.value = [{ app_id: app.app_id, name: app.name }]
+      } catch (e) {
+        apps.value = [{ app_id: currentAppId.value, name: currentAppId.value }]
+      }
+      // 同步搜索与表单的 app_id
+      if (!searchForm.app_id) searchForm.app_id = currentAppId.value
+      if (!form.app_id) form.app_id = currentAppId.value
+      return
+    }
     const response = await getApps()
     apps.value = response.apps || []
   } catch (error) {
-    console.error('Failed to load apps:', error)
+    // 静默；应用级管理员无权拉取应用列表时，已通过上方分支填充
   }
 }
 
@@ -307,7 +329,7 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   searchForm.name = ''
-  searchForm.app_id = ''
+  searchForm.app_id = isAppAdmin.value ? currentAppId.value : ''
   pagination.page = 1
   loadRoles()
 }
@@ -317,6 +339,9 @@ const showCreateDialog = () => {
   isEdit.value = false
   dialogVisible.value = true
   resetForm()
+  if (isAppAdmin.value && currentAppId.value) {
+    form.app_id = currentAppId.value
+  }
 }
 
 // 编辑角色
@@ -432,7 +457,7 @@ const handleSubmit = async () => {
 const resetForm = () => {
   Object.assign(form, {
     id: null,
-    app_id: '',
+    app_id: isAppAdmin.value ? currentAppId.value : '',
     name: '',
     code: '',
     description: '',
@@ -467,7 +492,19 @@ const handleCurrentChange = (page) => {
 
 onMounted(() => {
   loadApps()
+  // 应用级管理员固定 app_id 条件下，首次查询限定为自身应用
+  if (isAppAdmin.value && currentAppId.value) {
+    searchForm.app_id = currentAppId.value
+    form.app_id = currentAppId.value
+  }
   loadRoles()
+})
+
+// 监听登录信息加载完成后再填充应用选项（避免初始为空导致下拉无选项）
+watch(() => user.value, (val) => {
+  if (val && isAppAdmin.value) {
+    loadApps()
+  }
 })
 </script>
 

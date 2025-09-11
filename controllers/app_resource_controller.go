@@ -21,6 +21,33 @@ func (c *AppResourceController) getTargetAppID(ctx *gin.Context) string {
 	return middleware.GetTargetAppID(ctx)
 }
 
+// GetSelfApp 获取当前应用级管理员所属应用的信息（仅应用级管理员可访问）
+func (c *AppResourceController) GetSelfApp(ctx *gin.Context) {
+	adminType, exists := ctx.Get("admin_type")
+	if !exists || adminType != "app" {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "仅应用级管理员可访问"})
+		return
+	}
+
+	appID := c.getTargetAppID(ctx)
+
+	var app models.Application
+	if err := config.DB.Where("app_id = ?", appID).First(&app).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "应用不存在"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"id":          app.ID,
+			"name":        app.Name,
+			"app_id":      app.AppID,
+			"description": app.Description,
+			"status":      app.Status,
+		},
+	})
+}
+
 // ListRoles 获取应用角色列表
 func (c *AppResourceController) ListRoles(ctx *gin.Context) {
 	appID := c.getTargetAppID(ctx)
@@ -94,7 +121,7 @@ func (c *AppResourceController) CreateRole(ctx *gin.Context) {
 
 // UpdateRole 更新角色
 func (c *AppResourceController) UpdateRole(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	roleID := ctx.Param("id")
 
 	var req struct {
@@ -140,7 +167,7 @@ func (c *AppResourceController) UpdateRole(ctx *gin.Context) {
 
 // DeleteRole 删除角色
 func (c *AppResourceController) DeleteRole(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	roleID := ctx.Param("id")
 
 	// 检查角色是否存在
@@ -161,7 +188,7 @@ func (c *AppResourceController) DeleteRole(ctx *gin.Context) {
 
 // ListPermissions 获取应用权限列表
 func (c *AppResourceController) ListPermissions(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 
 	// 分页参数
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
@@ -192,7 +219,7 @@ func (c *AppResourceController) ListPermissions(ctx *gin.Context) {
 
 // CreatePermission 创建权限
 func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 
 	var req struct {
 		Name        string `json:"name" binding:"required"`
@@ -236,7 +263,7 @@ func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
 
 // UpdatePermission 更新权限
 func (c *AppResourceController) UpdatePermission(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	permissionID := ctx.Param("id")
 
 	var req struct {
@@ -290,7 +317,7 @@ func (c *AppResourceController) UpdatePermission(ctx *gin.Context) {
 
 // DeletePermission 删除权限
 func (c *AppResourceController) DeletePermission(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	permissionID := ctx.Param("id")
 
 	// 检查权限是否存在
@@ -311,7 +338,7 @@ func (c *AppResourceController) DeletePermission(ctx *gin.Context) {
 
 // AssignRolePermissions 为角色分配权限
 func (c *AppResourceController) AssignRolePermissions(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	roleID := ctx.Param("id")
 
 	var req struct {
@@ -348,7 +375,7 @@ func (c *AppResourceController) AssignRolePermissions(ctx *gin.Context) {
 
 // GetRolePermissions 获取角色权限
 func (c *AppResourceController) GetRolePermissions(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	roleID := ctx.Param("id")
 
 	var rolePermissions []models.RolePermission
@@ -455,7 +482,7 @@ func (c *AppResourceController) CreateUser(ctx *gin.Context) {
 
 // UpdateUser 更新用户
 func (c *AppResourceController) UpdateUser(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	userID := ctx.Param("id")
 
 	var req struct {
@@ -511,7 +538,7 @@ func (c *AppResourceController) UpdateUser(ctx *gin.Context) {
 
 // DeleteUser 删除用户
 func (c *AppResourceController) DeleteUser(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	userID := ctx.Param("id")
 
 	// 检查用户是否存在
@@ -538,7 +565,7 @@ func (c *AppResourceController) DeleteUser(ctx *gin.Context) {
 
 // AssignUserRoles 为用户分配角色
 func (c *AppResourceController) AssignUserRoles(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	userID := ctx.Param("id")
 
 	var req struct {
@@ -575,7 +602,7 @@ func (c *AppResourceController) AssignUserRoles(ctx *gin.Context) {
 
 // GetUserRoles 获取用户角色
 func (c *AppResourceController) GetUserRoles(ctx *gin.Context) {
-	appID, _ := middleware.GetAppID(ctx)
+	appID := c.getTargetAppID(ctx)
 	userID := ctx.Param("id")
 
 	var userRoles []models.UserRole

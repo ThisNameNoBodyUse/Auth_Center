@@ -13,7 +13,7 @@
 
       <!-- 标签页 -->
       <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-        <el-tab-pane label="系统管理员" name="system">
+        <el-tab-pane label="系统管理员" name="system" v-if="isSystemAdmin">
           <div class="tab-content">
             <!-- 系统管理员搜索栏 -->
             <div class="search-bar">
@@ -141,9 +141,10 @@
           v-model="searchForm.app_id"
           placeholder="选择应用"
           style="width: 150px; margin-right: 10px"
+          :disabled="isAppAdmin"
           clearable
         >
-          <el-option label="全部应用" value="" />
+          <el-option v-if="!isAppAdmin" label="全部应用" value="" />
           <el-option
             v-for="app in apps"
             :key="app.app_id"
@@ -249,7 +250,7 @@
         label-width="100px"
       >
         <el-form-item label="所属应用" prop="app_id">
-          <el-select v-model="form.app_id" placeholder="请选择应用" style="width: 100%">
+          <el-select v-model="form.app_id" placeholder="请选择应用" style="width: 100%" :disabled="isAppAdmin">
             <el-option
               v-for="app in apps"
               :key="app.app_id"
@@ -412,10 +413,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
-import { getUsers, createUser, updateUser, deleteUser, assignUserRoles, getUserRoles } from '@/api/app-resources'
+import { getUsers, createUser, updateUser, deleteUser, assignUserRoles, getUserRoles, getSelfApp } from '@/api/app-resources'
 import { getSystemAdmins, createSystemAdmin, updateSystemAdmin, deleteSystemAdmin, resetSystemAdminPassword } from '@/api/system-admins'
 import dayjs from 'dayjs'
 
@@ -565,6 +567,13 @@ const resetPasswordFormRules = {
   ]
 }
 
+// 认证与身份
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
+const isSystemAdmin = computed(() => authStore.loginType === 'system' || user.value?.admin_type === 'system')
+const isAppAdmin = computed(() => authStore.loginType === 'app' || user.value?.admin_type === 'app')
+const currentAppId = computed(() => user.value?.app_id || '')
+
 // 获取应用名称
 const getAppName = (appId) => {
   const app = apps.value.find(a => a.app_id === appId)
@@ -574,10 +583,23 @@ const getAppName = (appId) => {
 // 加载应用列表
 const loadApps = async () => {
   try {
+    if (isAppAdmin.value && currentAppId.value) {
+      try {
+        const app = await getSelfApp()
+        apps.value = [{ app_id: app.app_id, name: app.name }]
+      } catch (e) {
+        apps.value = [{ app_id: currentAppId.value, name: currentAppId.value }]
+      }
+      if (!systemSearchForm.app_id) systemSearchForm.app_id = currentAppId.value
+      if (!searchForm.app_id) searchForm.app_id = currentAppId.value
+      if (!form.app_id) form.app_id = currentAppId.value
+      activeTab.value = 'app'
+      return
+    }
     const response = await getApps()
     apps.value = response.apps || []
   } catch (error) {
-    console.error('Failed to load apps:', error)
+    // 静默
   }
 }
 
@@ -769,7 +791,7 @@ const handleSearch = () => {
 const handleReset = () => {
   searchForm.username = ''
   searchForm.email = ''
-  searchForm.app_id = ''
+  searchForm.app_id = isAppAdmin.value ? currentAppId.value : ''
   pagination.page = 1
   loadUsers()
 }
@@ -782,6 +804,9 @@ const showCreateDialog = () => {
     isEdit.value = false
     dialogVisible.value = true
     resetForm()
+    if (isAppAdmin.value && currentAppId.value) {
+      form.app_id = currentAppId.value
+    }
   }
 }
 
@@ -878,7 +903,7 @@ const handleSubmit = async () => {
 const resetForm = () => {
   Object.assign(form, {
     id: null,
-    app_id: '',
+    app_id: isAppAdmin.value ? currentAppId.value : '',
     username: '',
     email: '',
     phone: '',
@@ -915,7 +940,21 @@ const handleCurrentChange = (page) => {
 
 onMounted(() => {
   loadApps()
-  loadSystemAdmins() // 默认加载系统管理员
+  if (isAppAdmin.value) {
+    activeTab.value = 'app'
+    systemSearchForm.app_id = currentAppId.value
+    searchForm.app_id = currentAppId.value
+    form.app_id = currentAppId.value
+    loadUsers()
+  } else {
+    loadSystemAdmins() // 默认加载系统管理员
+  }
+})
+
+watch(() => user.value, (val) => {
+  if (val && isAppAdmin.value) {
+    loadApps()
+  }
 })
 </script>
 

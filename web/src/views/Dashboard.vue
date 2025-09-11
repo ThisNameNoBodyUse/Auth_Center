@@ -102,8 +102,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { getApps } from '@/api/apps'
+import { getSelfApp } from '@/api/app-resources'
 
 const stats = ref({
   apps: 0,
@@ -115,13 +117,30 @@ const stats = ref({
 const chartData = ref([])
 const recentApps = ref([])
 
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
+const isAppAdmin = computed(() => authStore.loginType === 'app' || user.value?.admin_type === 'app')
+const currentAppId = computed(() => user.value?.app_id || '')
+
 const loadStats = async () => {
   try {
+    if (isAppAdmin.value && currentAppId.value) {
+      // 应用级管理员不请求受限列表，显示自身应用概览（名称来源于 self 接口）
+      try {
+        const app = await getSelfApp()
+        stats.value.apps = 1
+        recentApps.value = [{ id: app.id || 1, name: app.name, app_id: app.app_id, status: app.status ?? 1 }]
+      } catch (e) {
+        stats.value.apps = 1
+        recentApps.value = [{ id: 1, name: currentAppId.value, app_id: currentAppId.value, status: 1 }]
+      }
+      return
+    }
     const response = await getApps()
     stats.value.apps = response.apps?.length || 0
     recentApps.value = response.apps?.slice(0, 5) || []
   } catch (error) {
-    console.error('Failed to load stats:', error)
+    // 静默
   }
 }
 

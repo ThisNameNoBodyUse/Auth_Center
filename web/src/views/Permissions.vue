@@ -23,9 +23,10 @@
           v-model="searchForm.app_id"
           placeholder="选择应用"
           style="width: 150px; margin-right: 10px"
+          :disabled="isAppAdmin"
           clearable
         >
-          <el-option label="全部应用" value="" />
+          <el-option v-if="!isAppAdmin" label="全部应用" value="" />
           <el-option
             v-for="app in apps"
             :key="app.app_id"
@@ -147,7 +148,7 @@
         label-width="100px"
       >
         <el-form-item label="所属应用" prop="app_id">
-          <el-select v-model="form.app_id" placeholder="请选择应用" style="width: 100%">
+          <el-select v-model="form.app_id" placeholder="请选择应用" style="width: 100%" :disabled="isAppAdmin">
             <el-option
               v-for="app in apps"
               :key="app.app_id"
@@ -293,10 +294,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
-import { getPermissions, createPermission, updatePermission, deletePermission } from '@/api/app-resources'
+import { getPermissions, createPermission, updatePermission, deletePermission, getSelfApp } from '@/api/app-resources'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -373,6 +375,13 @@ const apiFormRules = {
   ]
 }
 
+// 认证与身份
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
+const isSystemAdmin = computed(() => authStore.loginType === 'system' || user.value?.admin_type === 'system')
+const isAppAdmin = computed(() => authStore.loginType === 'app' || user.value?.admin_type === 'app')
+const currentAppId = computed(() => user.value?.app_id || '')
+
 // 获取应用名称
 const getAppName = (appId) => {
   const app = apps.value.find(a => a.app_id === appId)
@@ -418,10 +427,21 @@ const getMethodType = (method) => {
 // 加载应用列表
 const loadApps = async () => {
   try {
+    if (isAppAdmin.value && currentAppId.value) {
+      try {
+        const app = await getSelfApp()
+        apps.value = [{ app_id: app.app_id, name: app.name }]
+      } catch (e) {
+        apps.value = [{ app_id: currentAppId.value, name: currentAppId.value }]
+      }
+      if (!searchForm.app_id) searchForm.app_id = currentAppId.value
+      if (!form.app_id) form.app_id = currentAppId.value
+      return
+    }
     const response = await getApps()
     apps.value = response.apps || []
   } catch (error) {
-    console.error('Failed to load apps:', error)
+    // 静默
   }
 }
 
@@ -453,7 +473,7 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   searchForm.name = ''
-  searchForm.app_id = ''
+  searchForm.app_id = isAppAdmin.value ? currentAppId.value : ''
   searchForm.resource = ''
   pagination.page = 1
   loadPermissions()
@@ -464,6 +484,9 @@ const showCreateDialog = () => {
   isEdit.value = false
   dialogVisible.value = true
   resetForm()
+  if (isAppAdmin.value && currentAppId.value) {
+    form.app_id = currentAppId.value
+  }
 }
 
 // 编辑权限
@@ -599,7 +622,7 @@ const handleSubmit = async () => {
 const resetForm = () => {
   Object.assign(form, {
     id: null,
-    app_id: '',
+    app_id: isAppAdmin.value ? currentAppId.value : '',
     name: '',
     code: '',
     resource: '',
@@ -648,7 +671,17 @@ const handleCurrentChange = (page) => {
 
 onMounted(() => {
   loadApps()
+  if (isAppAdmin.value && currentAppId.value) {
+    searchForm.app_id = currentAppId.value
+    form.app_id = currentAppId.value
+  }
   loadPermissions()
+})
+
+watch(() => user.value, (val) => {
+  if (val && isAppAdmin.value) {
+    loadApps()
+  }
 })
 </script>
 
