@@ -4,7 +4,14 @@
       <div class="login-header">
         <img src="/logo.svg" alt="Logo" class="logo" />
         <h1>认证授权中心</h1>
-        <p>超级管理员登录</p>
+        <p>{{ loginType === 'system' ? '系统级超级管理员登录' : '应用级超级管理员登录' }}</p>
+      </div>
+      
+      <div class="login-type-selector">
+        <el-radio-group v-model="loginType" @change="handleLoginTypeChange">
+          <el-radio-button label="system">系统级超级管理员</el-radio-button>
+          <el-radio-button label="app">应用级超级管理员</el-radio-button>
+        </el-radio-group>
       </div>
       
       <el-form
@@ -49,8 +56,14 @@
       </el-form>
       
       <div class="login-footer">
-        <p>默认用户名: superadmin</p>
-        <p>默认密码: admin123</p>
+        <template v-if="loginType === 'system'">
+          <p>系统级超级管理员默认用户名: superadmin</p>
+          <p>默认密码: admin123</p>
+        </template>
+        <template v-else>
+          <p>应用级超级管理员默认用户名: appadmin</p>
+          <p>默认密码: admin123</p>
+        </template>
         <p class="warning">⚠️ 生产环境请修改默认密码</p>
       </div>
     </div>
@@ -69,6 +82,8 @@ const authStore = useAuthStore()
 const loginFormRef = ref()
 const loading = ref(false)
 
+const loginType = ref('system')
+
 const loginForm = reactive({
   username: 'superadmin',
   password: 'admin123'
@@ -84,6 +99,12 @@ const loginRules = {
   ]
 }
 
+const handleLoginTypeChange = () => {
+  // 切换登录类型时重置表单
+  loginForm.username = loginType.value === 'system' ? 'superadmin' : 'appadmin'
+  loginForm.password = 'admin123'
+}
+
 const handleLogin = async () => {
   if (!loginFormRef.value) return
   
@@ -91,7 +112,7 @@ const handleLogin = async () => {
     await loginFormRef.value.validate()
     loading.value = true
     
-    await authStore.loginAction(loginForm)
+    await authStore.loginAction(loginForm, loginType.value)
     ElMessage.success('登录成功')
     router.push('/')
   } catch (error) {
@@ -141,6 +162,11 @@ const handleLogin = async () => {
   margin: 0;
   color: #666;
   font-size: 14px;
+}
+
+.login-type-selector {
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .login-form {

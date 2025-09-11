@@ -1,0 +1,1654 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Auth Center API",
+    "description": "认证授权中心 API 文档",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Auth Center Team",
+      "email": "admin@auth-center.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "开发环境"
+    }
+  ],
+  "tags": [
+    {
+      "name": "认证管理",
+      "description": "用户认证相关接口"
+    },
+    {
+      "name": "应用管理",
+      "description": "系统级应用管理接口（仅系统级超级管理员）"
+    },
+    {
+      "name": "应用资源管理",
+      "description": "应用内资源管理接口（系统级和应用级超级管理员）"
+    },
+    {
+      "name": "用户管理",
+      "description": "用户管理相关接口"
+    },
+    {
+      "name": "角色管理",
+      "description": "角色管理相关接口"
+    },
+    {
+      "name": "权限管理",
+      "description": "权限管理相关接口"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["认证管理"],
+        "summary": "用户登录",
+        "description": "用户登录获取访问令牌",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password", "app_id", "app_secret"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "用户名"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "密码"
+                  },
+                  "app_id": {
+                    "type": "string",
+                    "description": "应用ID"
+                  },
+                  "app_secret": {
+                    "type": "string",
+                    "description": "应用密钥"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "description": "访问令牌"
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "description": "刷新令牌"
+                    },
+                    "expires_in": {
+                      "type": "integer",
+                      "description": "令牌过期时间（秒）"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {"type": "integer"},
+                        "username": {"type": "string"},
+                        "email": {"type": "string"},
+                        "is_super_admin": {"type": "boolean"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["认证管理"],
+        "summary": "用户注册",
+        "description": "注册新用户",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password", "email", "app_id", "app_secret"],
+                "properties": {
+                  "username": {"type": "string"},
+                  "password": {"type": "string"},
+                  "email": {"type": "string"},
+                  "phone": {"type": "string"},
+                  "app_id": {"type": "string"},
+                  "app_secret": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "user_id": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "409": {
+            "description": "用户已存在"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": ["认证管理"],
+        "summary": "刷新令牌",
+        "description": "使用刷新令牌获取新的访问令牌",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refresh_token"],
+                "properties": {
+                  "refresh_token": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "刷新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {"type": "string"},
+                    "refresh_token": {"type": "string"},
+                    "expires_in": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["认证管理"],
+        "summary": "用户登出",
+        "description": "登出并黑名单化令牌",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "登出成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/user": {
+      "get": {
+        "tags": ["认证管理"],
+        "summary": "获取当前用户信息",
+        "description": "获取当前登录用户的信息",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "username": {"type": "string"},
+                    "email": {"type": "string"},
+                    "phone": {"type": "string"},
+                    "is_super_admin": {"type": "boolean"},
+                    "app_id": {"type": "string"},
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "name": {"type": "string"},
+                          "code": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/login": {
+      "post": {
+        "tags": ["系统管理"],
+        "summary": "系统管理员登录",
+        "description": "系统内部管理员登录接口",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "用户名"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "密码"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "description": "访问令牌"
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "description": "刷新令牌"
+                    },
+                    "expires_in": {
+                      "type": "integer",
+                      "description": "令牌过期时间（秒）"
+                    },
+                    "admin": {
+                      "type": "object",
+                      "properties": {
+                        "id": {"type": "integer"},
+                        "username": {"type": "string"},
+                        "email": {"type": "string"},
+                        "admin_type": {"type": "string"},
+                        "app_id": {"type": "string"},
+                        "is_active": {"type": "boolean"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/register": {
+      "post": {
+        "tags": ["系统管理"],
+        "summary": "系统管理员注册",
+        "description": "注册新的系统管理员（仅系统级超级管理员可操作）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password", "email", "admin_type"],
+                "properties": {
+                  "username": {"type": "string"},
+                  "password": {"type": "string"},
+                  "email": {"type": "string"},
+                  "phone": {"type": "string"},
+                  "admin_type": {"type": "string", "enum": ["system", "app"]},
+                  "app_id": {"type": "string", "description": "应用级管理员需要指定应用ID"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "username": {"type": "string"},
+                    "email": {"type": "string"},
+                    "admin_type": {"type": "string"},
+                    "app_id": {"type": "string"},
+                    "created_at": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "409": {
+            "description": "用户名或邮箱已存在"
+          }
+        }
+      }
+    },
+    "/api/v1/system/refresh": {
+      "post": {
+        "tags": ["系统管理"],
+        "summary": "刷新系统管理员令牌",
+        "description": "使用刷新令牌获取新的访问令牌",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refresh_token"],
+                "properties": {
+                  "refresh_token": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "刷新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {"type": "string"},
+                    "refresh_token": {"type": "string"},
+                    "expires_in": {"type": "integer"},
+                    "admin": {
+                      "type": "object",
+                      "properties": {
+                        "id": {"type": "integer"},
+                        "username": {"type": "string"},
+                        "email": {"type": "string"},
+                        "admin_type": {"type": "string"},
+                        "app_id": {"type": "string"},
+                        "is_active": {"type": "boolean"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/logout": {
+      "post": {
+        "tags": ["系统管理"],
+        "summary": "系统管理员登出",
+        "description": "系统管理员登出并黑名单化令牌",
+        "responses": {
+          "200": {
+            "description": "登出成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/admin/info": {
+      "get": {
+        "tags": ["系统管理"],
+        "summary": "获取系统管理员信息",
+        "description": "获取当前登录的系统管理员信息",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "username": {"type": "string"},
+                    "email": {"type": "string"},
+                    "phone": {"type": "string"},
+                    "admin_type": {"type": "string"},
+                    "app_id": {"type": "string"},
+                    "is_active": {"type": "boolean"},
+                    "last_login_at": {"type": "string"},
+                    "created_at": {"type": "string"},
+                    "updated_at": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证失败"
+          }
+        }
+      }
+    },
+    "/api/v1/apps": {
+      "get": {
+        "tags": ["应用管理"],
+        "summary": "获取应用列表",
+        "description": "分页获取应用列表（仅系统级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "schema": {"type": "integer", "default": 1}
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "每页数量",
+            "schema": {"type": "integer", "default": 10}
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "应用名称（模糊搜索）",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "应用状态",
+            "schema": {"type": "integer", "enum": [0, 1]}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "name": {"type": "string"},
+                          "app_id": {"type": "string"},
+                          "description": {"type": "string"},
+                          "status": {"type": "integer"},
+                          "created_at": {"type": "string"},
+                          "updated_at": {"type": "string"}
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {"type": "integer"},
+                        "page_size": {"type": "integer"},
+                        "total": {"type": "integer"},
+                        "total_page": {"type": "integer"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["应用管理"],
+        "summary": "创建应用",
+        "description": "创建新应用（仅系统级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {"type": "string"},
+                  "description": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "app_id": {"type": "string"},
+                    "app_secret": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "integer"},
+                    "created_at": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apps/{app_id}": {
+      "get": {
+        "tags": ["应用管理"],
+        "summary": "获取应用详情",
+        "description": "根据应用ID获取应用详细信息（仅系统级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "description": "应用ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功"
+          },
+          "404": {
+            "description": "应用不存在"
+          }
+        }
+      },
+      "put": {
+        "tags": ["应用管理"],
+        "summary": "更新应用",
+        "description": "更新应用信息（仅系统级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "description": "应用ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "description": {"type": "string"},
+                  "status": {"type": "integer"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功"
+          },
+          "404": {
+            "description": "应用不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["应用管理"],
+        "summary": "删除应用",
+        "description": "删除应用（仅系统级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "description": "应用ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功"
+          },
+          "404": {
+            "description": "应用不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/apps/{app_id}/regenerate-secret": {
+      "post": {
+        "tags": ["应用管理"],
+        "summary": "重新生成应用密钥",
+        "description": "重新生成应用密钥（仅系统级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "description": "应用ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "生成成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "app_secret": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apps/{app_id}/users": {
+      "get": {
+        "tags": ["应用管理"],
+        "summary": "获取应用用户列表",
+        "description": "获取指定应用的用户列表（仅系统级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "description": "应用ID",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "schema": {"type": "integer", "default": 1}
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "每页数量",
+            "schema": {"type": "integer", "default": 10}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "username": {"type": "string"},
+                          "email": {"type": "string"},
+                          "phone": {"type": "string"},
+                          "is_super_admin": {"type": "boolean"},
+                          "status": {"type": "integer"},
+                          "created_at": {"type": "string"}
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {"type": "integer"},
+                        "page_size": {"type": "integer"},
+                        "total": {"type": "integer"},
+                        "total_page": {"type": "integer"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/app/roles": {
+      "get": {
+        "tags": ["应用资源管理", "角色管理"],
+        "summary": "获取角色列表",
+        "description": "获取当前应用的角色列表（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "schema": {"type": "integer", "default": 1}
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "每页数量",
+            "schema": {"type": "integer", "default": 10}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "name": {"type": "string"},
+                          "code": {"type": "string"},
+                          "description": {"type": "string"},
+                          "status": {"type": "integer"},
+                          "created_at": {"type": "string"},
+                          "updated_at": {"type": "string"}
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {"type": "integer"},
+                        "page_size": {"type": "integer"},
+                        "total": {"type": "integer"},
+                        "total_page": {"type": "integer"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["应用资源管理", "角色管理"],
+        "summary": "创建角色",
+        "description": "创建新角色（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "code"],
+                "properties": {
+                  "name": {"type": "string"},
+                  "code": {"type": "string"},
+                  "description": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "code": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "integer"},
+                    "created_at": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/app/roles/{id}": {
+      "put": {
+        "tags": ["应用资源管理", "角色管理"],
+        "summary": "更新角色",
+        "description": "更新角色信息（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "角色ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "code": {"type": "string"},
+                  "description": {"type": "string"},
+                  "status": {"type": "integer"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功"
+          },
+          "404": {
+            "description": "角色不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["应用资源管理", "角色管理"],
+        "summary": "删除角色",
+        "description": "删除角色（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "角色ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功"
+          },
+          "404": {
+            "description": "角色不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/app/roles/{id}/permissions": {
+      "get": {
+        "tags": ["应用资源管理", "角色管理"],
+        "summary": "获取角色权限",
+        "description": "获取角色的权限列表（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "角色ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "role_id": {"type": "integer"},
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "name": {"type": "string"},
+                          "code": {"type": "string"},
+                          "resource": {"type": "string"},
+                          "action": {"type": "string"},
+                          "description": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["应用资源管理", "角色管理"],
+        "summary": "分配角色权限",
+        "description": "为角色分配权限（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "角色ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["permission_ids"],
+                "properties": {
+                  "permission_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "权限ID列表"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "分配成功"
+          },
+          "404": {
+            "description": "角色不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/app/permissions": {
+      "get": {
+        "tags": ["应用资源管理", "权限管理"],
+        "summary": "获取权限列表",
+        "description": "获取当前应用的权限列表（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "schema": {"type": "integer", "default": 1}
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "每页数量",
+            "schema": {"type": "integer", "default": 10}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "name": {"type": "string"},
+                          "code": {"type": "string"},
+                          "resource": {"type": "string"},
+                          "action": {"type": "string"},
+                          "description": {"type": "string"},
+                          "status": {"type": "integer"},
+                          "created_at": {"type": "string"},
+                          "updated_at": {"type": "string"}
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {"type": "integer"},
+                        "page_size": {"type": "integer"},
+                        "total": {"type": "integer"},
+                        "total_page": {"type": "integer"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["应用资源管理", "权限管理"],
+        "summary": "创建权限",
+        "description": "创建新权限（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "code", "resource", "action"],
+                "properties": {
+                  "name": {"type": "string"},
+                  "code": {"type": "string"},
+                  "resource": {"type": "string"},
+                  "action": {"type": "string"},
+                  "description": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "code": {"type": "string"},
+                    "resource": {"type": "string"},
+                    "action": {"type": "string"},
+                    "description": {"type": "string"},
+                    "status": {"type": "integer"},
+                    "created_at": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/app/permissions/{id}": {
+      "put": {
+        "tags": ["应用资源管理", "权限管理"],
+        "summary": "更新权限",
+        "description": "更新权限信息（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "权限ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "code": {"type": "string"},
+                  "resource": {"type": "string"},
+                  "action": {"type": "string"},
+                  "description": {"type": "string"},
+                  "status": {"type": "integer"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功"
+          },
+          "404": {
+            "description": "权限不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["应用资源管理", "权限管理"],
+        "summary": "删除权限",
+        "description": "删除权限（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "权限ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功"
+          },
+          "404": {
+            "description": "权限不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/app/users": {
+      "get": {
+        "tags": ["应用资源管理", "用户管理"],
+        "summary": "获取用户列表",
+        "description": "获取当前应用的用户列表（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "schema": {"type": "integer", "default": 1}
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "每页数量",
+            "schema": {"type": "integer", "default": 10}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "username": {"type": "string"},
+                          "email": {"type": "string"},
+                          "phone": {"type": "string"},
+                          "is_super_admin": {"type": "boolean"},
+                          "status": {"type": "integer"},
+                          "created_at": {"type": "string"},
+                          "updated_at": {"type": "string"}
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {"type": "integer"},
+                        "page_size": {"type": "integer"},
+                        "total": {"type": "integer"},
+                        "total_page": {"type": "integer"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["应用资源管理", "用户管理"],
+        "summary": "创建用户",
+        "description": "创建新用户（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password", "email"],
+                "properties": {
+                  "username": {"type": "string"},
+                  "password": {"type": "string"},
+                  "email": {"type": "string"},
+                  "phone": {"type": "string"},
+                  "is_super_admin": {"type": "boolean"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer"},
+                    "username": {"type": "string"},
+                    "email": {"type": "string"},
+                    "phone": {"type": "string"},
+                    "is_super_admin": {"type": "boolean"},
+                    "status": {"type": "integer"},
+                    "created_at": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/app/users/{id}": {
+      "put": {
+        "tags": ["应用资源管理", "用户管理"],
+        "summary": "更新用户",
+        "description": "更新用户信息（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用户ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {"type": "string"},
+                  "email": {"type": "string"},
+                  "phone": {"type": "string"},
+                  "password": {"type": "string"},
+                  "is_super_admin": {"type": "boolean"},
+                  "status": {"type": "integer"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功"
+          },
+          "404": {
+            "description": "用户不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["应用资源管理", "用户管理"],
+        "summary": "删除用户",
+        "description": "删除用户（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用户ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功"
+          },
+          "404": {
+            "description": "用户不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/app/users/{id}/roles": {
+      "get": {
+        "tags": ["应用资源管理", "用户管理"],
+        "summary": "获取用户角色",
+        "description": "获取用户的角色列表（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用户ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {"type": "integer"},
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "name": {"type": "string"},
+                          "code": {"type": "string"},
+                          "description": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["应用资源管理", "用户管理"],
+        "summary": "分配用户角色",
+        "description": "为用户分配角色（系统级和应用级超级管理员）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用户ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "description": "应用ID（系统级超级管理员可指定，应用级超级管理员忽略此参数）",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role_ids"],
+                "properties": {
+                  "role_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "角色ID列表"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "分配成功"
+          },
+          "404": {
+            "description": "用户不存在"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "错误信息"
+          }
+        }
+      },
+      "Success": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "成功信息"
+          }
+        }
+      }
+    }
+  }
+}

@@ -16,11 +16,12 @@ type AuthService struct{}
 
 // LoginRequest 登录请求
 type LoginRequest struct {
-	AppID    string `json:"app_id" binding:"required"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Phone    string `json:"phone"`
-	Code     string `json:"code"`
+	AppID     string `json:"app_id" binding:"required"`
+	AppSecret string `json:"app_secret" binding:"required"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Phone     string `json:"phone"`
+	Code      string `json:"code"`
 }
 
 // LoginResponse 登录响应
@@ -51,11 +52,12 @@ type RoleInfo struct {
 
 // RegisterRequest 注册请求
 type RegisterRequest struct {
-	AppID    string `json:"app_id" binding:"required"`
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Password string `json:"password" binding:"required,min=6"`
+	AppID     string `json:"app_id" binding:"required"`
+	AppSecret string `json:"app_secret" binding:"required"`
+	Username  string `json:"username" binding:"required"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Password  string `json:"password" binding:"required,min=6"`
 }
 
 // RefreshTokenRequest 刷新令牌请求
@@ -70,10 +72,10 @@ type LogoutRequest struct {
 
 // Login 用户登录
 func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
-	// 验证应用是否存在
+	// 验证应用是否存在且密钥正确
 	var app models.Application
-	if err := config.DB.Where("app_id = ? AND status = 1", req.AppID).First(&app).Error; err != nil {
-		return nil, errors.New("应用不存在或已禁用")
+	if err := config.DB.Where("app_id = ? AND app_secret = ? AND status = 1", req.AppID, req.AppSecret).First(&app).Error; err != nil {
+		return nil, errors.New("应用不存在、密钥错误或已禁用")
 	}
 
 	// 读取应用登录方式
@@ -158,10 +160,10 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 
 // Register 用户注册
 func (s *AuthService) Register(req *RegisterRequest) error {
-	// 验证应用是否存在
+	// 验证应用是否存在且密钥正确
 	var app models.Application
-	if err := config.DB.Where("app_id = ? AND status = 1", req.AppID).First(&app).Error; err != nil {
-		return errors.New("应用不存在或已禁用")
+	if err := config.DB.Where("app_id = ? AND app_secret = ? AND status = 1", req.AppID, req.AppSecret).First(&app).Error; err != nil {
+		return errors.New("应用不存在、密钥错误或已禁用")
 	}
 
 	// 检查用户名是否已存在

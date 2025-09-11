@@ -113,6 +113,22 @@ type Provider struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+// SystemAdmin 系统管理员模型
+type SystemAdmin struct {
+	ID           uint           `json:"id" gorm:"primaryKey"`
+	Username     string         `json:"username" gorm:"uniqueIndex;not null"`
+	Email        string         `json:"email" gorm:"uniqueIndex"`
+	Phone        string         `json:"phone" gorm:"index"`
+	Password     string         `json:"-" gorm:"not null"`                   // 不返回给前端
+	AdminType    string         `json:"admin_type" gorm:"not null"`          // system: 系统级管理员, app: 应用级管理员
+	AppID        string         `json:"app_id" gorm:"index"`                 // 应用级管理员关联的应用ID
+	IsActive     bool           `json:"is_active" gorm:"default:true"`       // 是否激活
+	LastLoginAt  *time.Time     `json:"last_login_at"`                       // 最后登录时间
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+}
+
 // TableName 方法用于指定表名
 func (Application) TableName() string {
 	return "applications"
@@ -148,4 +164,8 @@ func (Token) TableName() string {
 
 func (Provider) TableName() string {
 	return "providers"
+}
+
+func (SystemAdmin) TableName() string {
+	return "system_admins"
 }

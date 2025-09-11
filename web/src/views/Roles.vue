@@ -205,6 +205,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
+import { getRoles, createRole, updateRole, deleteRole, assignRolePermissions, getRolePermissions } from '@/api/app-resources'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -282,29 +283,14 @@ const loadApps = async () => {
 const loadRoles = async () => {
   loading.value = true
   try {
-    // 这里应该调用角色API，暂时用模拟数据
-    const mockRoles = [
-      {
-        id: 1,
-        name: '超级管理员',
-        code: 'super_admin',
-        app_id: 'system-admin',
-        description: '系统超级管理员，拥有所有权限',
-        status: 1,
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 2,
-        name: '管理员',
-        code: 'admin',
-        app_id: 'user-mgmt-001',
-        description: '应用管理员角色',
-        status: 1,
-        created_at: '2024-01-01T00:00:00Z'
-      }
-    ]
-    roles.value = mockRoles
-    pagination.total = mockRoles.length
+    const params = {
+      page: pagination.page,
+      page_size: pagination.size,
+      ...searchForm
+    }
+    const response = await getRoles(params)
+    roles.value = response.data || []
+    pagination.total = response.pagination?.total || 0
   } catch (error) {
     ElMessage.error('加载角色列表失败')
   } finally {
@@ -408,7 +394,7 @@ const handleDelete = async (row) => {
       }
     )
     
-    // 这里应该调用删除角色API
+    await deleteRole(row.id)
     ElMessage.success('删除成功')
     loadRoles()
   } catch (error) {
@@ -426,7 +412,11 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     submitLoading.value = true
     
-    // 这里应该调用创建/更新角色API
+    if (isEdit.value) {
+      await updateRole(form.id, form)
+    } else {
+      await createRole(form)
+    }
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
     
     dialogVisible.value = false

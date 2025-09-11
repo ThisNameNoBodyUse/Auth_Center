@@ -139,6 +139,9 @@
         <el-form-item label="应用ID" prop="app_id" v-if="isEdit">
           <el-input v-model="form.app_id" disabled />
         </el-form-item>
+        <el-form-item label="应用ID" v-else>
+          <el-input value="系统自动生成" disabled />
+        </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input
             v-model="form.description"

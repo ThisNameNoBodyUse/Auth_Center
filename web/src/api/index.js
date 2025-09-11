@@ -18,9 +18,13 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${authStore.token}`
     }
     
-    // 添加应用认证头
-    config.headers['X-App-Id'] = authStore.appId
-    config.headers['X-App-Secret'] = authStore.appSecret
+    // 根据登录类型添加不同的认证头
+    if (authStore.loginType === 'app') {
+      // 应用用户需要应用认证头
+      config.headers['X-App-Id'] = authStore.appId
+      config.headers['X-App-Secret'] = authStore.appSecret
+    }
+    // 系统管理员不需要应用认证头
     
     return config
   },

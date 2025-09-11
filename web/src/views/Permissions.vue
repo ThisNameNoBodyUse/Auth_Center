@@ -296,6 +296,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
+import { getPermissions, createPermission, updatePermission, deletePermission } from '@/api/app-resources'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -428,44 +429,14 @@ const loadApps = async () => {
 const loadPermissions = async () => {
   loading.value = true
   try {
-    // 这里应该调用权限API，暂时用模拟数据
-    const mockPermissions = [
-      {
-        id: 1,
-        name: '应用管理',
-        code: 'app_manage',
-        app_id: 'system-admin',
-        resource: 'api',
-        action: 'all',
-        description: '应用的所有操作权限',
-        status: 1,
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 2,
-        name: '用户管理',
-        code: 'user_manage',
-        app_id: 'system-admin',
-        resource: 'api',
-        action: 'all',
-        description: '用户的所有操作权限',
-        status: 1,
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: 3,
-        name: '数据查看',
-        code: 'data_read',
-        app_id: 'user-mgmt-001',
-        resource: 'data',
-        action: 'read',
-        description: '数据查看权限',
-        status: 1,
-        created_at: '2024-01-01T00:00:00Z'
-      }
-    ]
-    permissions.value = mockPermissions
-    pagination.total = mockPermissions.length
+    const params = {
+      page: pagination.page,
+      page_size: pagination.size,
+      ...searchForm
+    }
+    const response = await getPermissions(params)
+    permissions.value = response.data || []
+    pagination.total = response.pagination?.total || 0
   } catch (error) {
     ElMessage.error('加载权限列表失败')
   } finally {
@@ -590,7 +561,7 @@ const handleDelete = async (row) => {
       }
     )
     
-    // 这里应该调用删除权限API
+    await deletePermission(row.id)
     ElMessage.success('删除成功')
     loadPermissions()
   } catch (error) {
@@ -608,7 +579,11 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     submitLoading.value = true
     
-    // 这里应该调用创建/更新权限API
+    if (isEdit.value) {
+      await updatePermission(form.id, form)
+    } else {
+      await createPermission(form)
+    }
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
     
     dialogVisible.value = false

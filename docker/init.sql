@@ -40,6 +40,28 @@ CREATE TABLE IF NOT EXISTS users (
   KEY idx_user_deleted_at (deleted_at)
 ) COMMENT='用户';
 
+-- 系统管理员表
+CREATE TABLE IF NOT EXISTS system_admins (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+  username VARCHAR(128) NOT NULL COMMENT '用户名',
+  email VARCHAR(255) NULL COMMENT '邮箱',
+  phone VARCHAR(32) NULL COMMENT '手机号',
+  password VARCHAR(255) NOT NULL COMMENT '密码哈希',
+  admin_type VARCHAR(20) NOT NULL COMMENT '管理员类型 system: 系统级管理员, app: 应用级管理员',
+  app_id VARCHAR(64) NULL COMMENT '应用级管理员关联的应用ID',
+  is_active TINYINT NOT NULL DEFAULT 1 COMMENT '是否激活 1是 0否',
+  last_login_at DATETIME NULL COMMENT '最后登录时间',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted_at DATETIME NULL DEFAULT NULL COMMENT '软删除时间',
+  UNIQUE KEY uk_sys_admin_username (username),
+  UNIQUE KEY uk_sys_admin_email (email),
+  KEY idx_sys_admin_phone (phone),
+  KEY idx_sys_admin_type (admin_type),
+  KEY idx_sys_admin_app_id (app_id),
+  KEY idx_sys_admin_deleted_at (deleted_at)
+) COMMENT='系统管理员';
+
 -- 登录方式提供表（每应用一条）
 CREATE TABLE IF NOT EXISTS providers (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
@@ -226,6 +248,12 @@ ON DUPLICATE KEY UPDATE permission_id=VALUES(permission_id);
 -- 插入超级管理员用户
 INSERT INTO users (app_id, username, email, phone, password, is_super_admin, status) VALUES
 ('system-admin', 'superadmin', 'admin@auth-center.com', '', '$2b$10$UtbwZjygOigggJA.7So9v.cu0S1B.ibbBUNxdtA8GmwFVi86cZSye', 1, 1)
+ON DUPLICATE KEY UPDATE username=VALUES(username);
+
+-- 插入系统管理员
+INSERT INTO system_admins (username, email, phone, password, admin_type, app_id, is_active) VALUES
+('superadmin', 'admin@auth-center.com', '', '$2b$10$UtbwZjygOigggJA.7So9v.cu0S1B.ibbBUNxdtA8GmwFVi86cZSye', 'system', NULL, 1),
+('appadmin', 'appadmin@auth-center.com', '13800138000', '$2b$10$UtbwZjygOigggJA.7So9v.cu0S1B.ibbBUNxdtA8GmwFVi86cZSye', 'app', 'default-app', 1)
 ON DUPLICATE KEY UPDATE username=VALUES(username);
 
 -- 为超级管理员用户分配超级管理员角色
