@@ -151,7 +151,6 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 			Username: user.Username,
 			Email:    user.Email,
 			Phone:    user.Phone,
-			Info:     user.Info,
 			Roles:    roleInfos,
 		},
 	}, nil
@@ -257,7 +256,6 @@ func (s *AuthService) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, er
 			Username: user.Username,
 			Email:    user.Email,
 			Phone:    user.Phone,
-			Info:     user.Info,
 			Roles:    roleInfos,
 		},
 	}, nil
@@ -304,7 +302,6 @@ func (s *AuthService) GetUserInfo(userID uint, appID string) (*UserInfo, error) 
 		Username: user.Username,
 		Email:    user.Email,
 		Phone:    user.Phone,
-		Info:     user.Info,
 		Roles:    roleInfos,
 	}, nil
 }

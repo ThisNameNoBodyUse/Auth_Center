@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS applications (
   KEY idx_app_deleted_at (deleted_at)
 ) COMMENT='应用';
 
--- 用户表：应用内用户
+-- 用户表：应用内用户（去除info）
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
   app_id VARCHAR(64) NOT NULL COMMENT '所属应用ID',
@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NULL COMMENT '邮箱（应用内唯一，可空）',
   phone VARCHAR(32) NULL COMMENT '手机号（可用于短信登录）',
   password VARCHAR(255) NOT NULL COMMENT '密码哈希',
-  info JSON NULL COMMENT '用户扩展资料(JSON)',
   is_super_admin TINYINT NOT NULL DEFAULT 0 COMMENT '是否为超级管理员 1是 0否',
   status TINYINT NOT NULL DEFAULT 1 COMMENT '状态 1启用 0禁用',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

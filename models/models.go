@@ -27,7 +27,6 @@ type User struct {
 	Email        string         `json:"email" gorm:"uniqueIndex"`
 	Phone        string         `json:"phone" gorm:"index"`
 	Password     string         `json:"-" gorm:"not null"`                   // 不返回给前端
-	Info         string         `json:"info" gorm:"type:json"`               // 用户扩展信息(JSON)
 	IsSuperAdmin bool           `json:"is_super_admin" gorm:"default:false"` // 是否为超级管理员
 	Status       int            `json:"status" gorm:"default:1"`             // 1:启用 0:禁用
 	CreatedAt    time.Time      `json:"created_at"`
