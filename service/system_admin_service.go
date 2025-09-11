@@ -261,35 +261,7 @@ func (s *SystemAdminService) validateToken(tokenString string) (jwt.MapClaims, e
 
 // saveTokens 保存令牌到数据库
 func (s *SystemAdminService) saveTokens(adminID uint, accessToken, refreshToken string) error {
-	// 删除旧的令牌
-	config.DB.Where("user_id = ? AND type IN (?)", adminID, []string{"access", "refresh"}).Delete(&models.Token{})
-
-	// 保存访问令牌
-	accessTokenRecord := &models.Token{
-		AppID:     "system-admin",
-		UserID:    adminID,
-		Token:     accessToken,
-		Type:      "access",
-		ExpiresAt: time.Now().Add(time.Hour),
-	}
-
-	// 保存刷新令牌
-	refreshTokenRecord := &models.Token{
-		AppID:     "system-admin",
-		UserID:    adminID,
-		Token:     refreshToken,
-		Type:      "refresh",
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-	}
-
-	if err := config.DB.Create(accessTokenRecord).Error; err != nil {
-		return err
-	}
-
-	if err := config.DB.Create(refreshTokenRecord).Error; err != nil {
-		return err
-	}
-
+	// 系统管理员：不落库，仅依赖JWT过期与Redis黑名单做吊销
 	return nil
 }
 

@@ -38,18 +38,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 应用用户登录
+  // 应用级超级管理员登录（使用系统管理员接口）
   const appLoginAction = async (credentials) => {
     try {
-      const response = await login({
-        app_id: appId.value,
-        app_secret: appSecret.value,
+      const response = await systemLogin({
         username: credentials.username,
         password: credentials.password
       })
       
       token.value = response.access_token
-      user.value = response.user
+      user.value = response.admin
       loginType.value = 'app'
       
       // 保存到cookie
@@ -75,11 +73,8 @@ export const useAuthStore = defineStore('auth', () => {
   const logoutAction = async () => {
     try {
       if (token.value) {
-        if (loginType.value === 'system') {
-          await systemLogout(token.value)
-        } else {
-          await logout(token.value)
-        }
+        // 系统管理员和应用级超级管理员都使用系统管理员登出接口
+        await systemLogout(token.value)
       }
     } catch (error) {
       console.error('Logout error:', error)
@@ -96,13 +91,9 @@ export const useAuthStore = defineStore('auth', () => {
   const checkAuth = async () => {
     if (token.value) {
       try {
-        let response
-        if (loginType.value === 'system') {
-          response = await getSystemAdminInfo()
-        } else {
-          response = await getUserInfo()
-        }
-        user.value = response
+        // 系统管理员和应用级超级管理员都使用系统管理员信息接口
+        const response = await getSystemAdminInfo()
+        user.value = response.admin
       } catch (error) {
         // token可能已过期，清除本地状态
         token.value = ''

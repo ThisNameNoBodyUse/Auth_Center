@@ -18,13 +18,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${authStore.token}`
     }
     
-    // 根据登录类型添加不同的认证头
-    if (authStore.loginType === 'app') {
-      // 应用用户需要应用认证头
-      config.headers['X-App-Id'] = authStore.appId
-      config.headers['X-App-Secret'] = authStore.appSecret
-    }
-    // 系统管理员不需要应用认证头
+    // 注意：应用级超级管理员现在也使用系统管理员接口，不需要应用认证头
+    // 只有真正的应用用户（通过 /api/v1/auth/* 接口）才需要应用认证头
+    // 但在这个前端管理系统中，我们只处理系统管理员和应用级超级管理员
+    // 所以这里不需要添加应用认证头
     
     return config
   },

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"auth-center/models"
 	"github.com/redis/go-redis/v9"
 	"gopkg.in/ini.v1"
 	"gorm.io/driver/mysql"
@@ -157,6 +158,22 @@ func initDatabase() {
 
 	if err != nil {
 		log.Fatalf("数据库连接失败: %v", err)
+	}
+
+	// 自动迁移数据库表
+	err = DB.AutoMigrate(
+		&models.Application{},
+		&models.User{},
+		&models.SystemAdmin{},
+		&models.Role{},
+		&models.Permission{},
+		&models.UserRole{},
+		&models.RolePermission{},
+		&models.Token{},
+		&models.Provider{},
+	)
+	if err != nil {
+		log.Fatalf("数据库迁移失败: %v", err)
 	}
 
 	log.Println("数据库连接成功!")
