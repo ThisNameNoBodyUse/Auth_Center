@@ -181,6 +181,7 @@
           <h4>权限分配</h4>
           <el-tree
             ref="permissionTreeRef"
+            :key="currentRole?.id"
             :data="permissionTree"
             :props="treeProps"
             show-checkbox
@@ -205,7 +206,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
-import { getRoles, createRole, updateRole, deleteRole, assignRolePermissions, getRolePermissions, getSelfApp } from '@/api/app-resources'
+import { getRoles, createRole, updateRole, deleteRole, assignRolePermissions, getRolePermissions, getSelfApp, getPermissions } from '@/api/app-resources'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -352,33 +353,34 @@ const handleManagePermissions = async (row) => {
   currentRole.value = row
   permissionDialogVisible.value = true
   
-  // 加载权限树
+  // 加载该角色所属应用的权限列表，并回显当前角色的权限
   try {
-    // 这里应该调用权限API，暂时用模拟数据
-    permissionTree.value = [
-      {
-        id: 1,
-        name: '系统管理',
-        children: [
-          { id: 11, name: '应用管理' },
-          { id: 12, name: '用户管理' },
-          { id: 13, name: '角色管理' },
-          { id: 14, name: '权限管理' }
-        ]
-      },
-      {
-        id: 2,
-        name: '业务管理',
-        children: [
-          { id: 21, name: '数据查看' },
-          { id: 22, name: '数据编辑' },
-          { id: 23, name: '数据删除' }
-        ]
-      }
-    ]
-    
-    // 加载角色当前权限
-    selectedPermissions.value = [11, 12, 13, 14] // 模拟数据
+    // 先清空以避免上一个角色的勾选残留
+    permissionTree.value = []
+    selectedPermissions.value = []
+
+    // 1) 拉取应用内权限列表
+    const resp = await getPermissions({ app_id: row.app_id, page: 1, size: 1000 })
+    const list = resp.data || []
+    if (!list.length) {
+      permissionTree.value = []
+      selectedPermissions.value = []
+      ElMessage.warning('当前应用暂无权限，请先到“权限管理”创建权限后再分配')
+      return
+    }
+    // 将扁平权限构造成树控件可用的数据（平铺为一级）
+    permissionTree.value = list.map(p => ({ id: p.id, name: `${p.name} (${p.action} ${p.code || ''})` }))
+
+    // 2) 拉取角色当前权限ID集合
+    const assigned = await getRolePermissions(row.id, row.app_id)
+    selectedPermissions.value = Array.isArray(assigned.permission_ids) ? assigned.permission_ids : []
+
+    // 强制设置勾选，避免默认勾选状态滞留
+    if (permissionTreeRef.value) {
+      // 下一帧再设置，确保树已根据新数据渲染
+      await Promise.resolve()
+      permissionTreeRef.value.setCheckedKeys(selectedPermissions.value)
+    }
   } catch (error) {
     ElMessage.error('加载权限信息失败')
   }
@@ -391,8 +393,11 @@ const handleSavePermissions = async () => {
     const checkedKeys = permissionTreeRef.value.getCheckedKeys()
     const halfCheckedKeys = permissionTreeRef.value.getHalfCheckedKeys()
     const allKeys = [...checkedKeys, ...halfCheckedKeys]
-    
-    // 这里应该调用保存权限API
+
+    await assignRolePermissions(currentRole.value.id, {
+      permission_ids: allKeys,
+      app_id: currentRole.value.app_id
+    })
     ElMessage.success('权限保存成功')
     permissionDialogVisible.value = false
   } catch (error) {
