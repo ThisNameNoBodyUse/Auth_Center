@@ -160,9 +160,7 @@
         <el-form-item label="权限名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入权限名称" />
         </el-form-item>
-        <el-form-item label="权限编码" prop="code">
-          <el-input v-model="form.code" placeholder="请输入权限编码" />
-        </el-form-item>
+        
         <el-form-item label="资源类型" prop="resource">
           <el-select v-model="form.resource" placeholder="请选择资源类型" style="width: 100%">
             <el-option label="菜单" value="menu" />
@@ -332,7 +330,6 @@ const form = reactive({
   id: null,
   app_id: '',
   name: '',
-  code: '',
   resource: '',
   action: '',
   description: '',
@@ -352,18 +349,13 @@ const formRules = {
   name: [
     { required: true, message: '请输入权限名称', trigger: 'blur' }
   ],
-  code: [
-    { required: true, message: '请输入权限编码', trigger: 'blur' }
-  ],
   resource: [
     { required: true, message: '请选择资源类型', trigger: 'change' }
   ],
   action: [
     { required: true, message: '请选择操作类型', trigger: 'change' }
   ],
-  description: [
-    { required: true, message: '请输入权限描述', trigger: 'blur' }
-  ]
+  description: []
 }
 
 const apiFormRules = {
@@ -584,7 +576,7 @@ const handleDelete = async (row) => {
       }
     )
     
-    await deletePermission(row.id)
+    await deletePermission(row.id, row.app_id)
     ElMessage.success('删除成功')
     loadPermissions()
   } catch (error) {
@@ -602,10 +594,18 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     submitLoading.value = true
     
+    const payload = {
+      app_id: form.app_id,
+      name: form.name,
+      resource: form.resource,
+      action: form.action,
+      description: form.description,
+      status: form.status
+    }
     if (isEdit.value) {
-      await updatePermission(form.id, form)
+      await updatePermission(form.id, payload)
     } else {
-      await createPermission(form)
+      await createPermission(payload)
     }
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
     
@@ -624,7 +624,6 @@ const resetForm = () => {
     id: null,
     app_id: isAppAdmin.value ? currentAppId.value : '',
     name: '',
-    code: '',
     resource: '',
     action: '',
     description: '',

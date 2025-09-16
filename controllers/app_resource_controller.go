@@ -60,14 +60,22 @@ func (c *AppResourceController) ListRoles(ctx *gin.Context) {
 	var roles []models.Role
 	var total int64
 
-	// 获取角色列表
-	if err := config.DB.Where("app_id = ?", appID).Offset(offset).Limit(size).Find(&roles).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取角色列表失败"})
-		return
+	// 系统级管理员且未指定 app_id 时，返回全部应用的角色
+	if middleware.CanAccessAnyApp(ctx) && ctx.Query("app_id") == "" {
+		if err := config.DB.Offset(offset).Limit(size).Find(&roles).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取角色列表失败"})
+			return
+		}
+		config.DB.Model(&models.Role{}).Count(&total)
+	} else {
+		// 获取角色列表（限定目标应用）
+		if err := config.DB.Where("app_id = ?", appID).Offset(offset).Limit(size).Find(&roles).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取角色列表失败"})
+			return
+		}
+		// 获取总数
+		config.DB.Model(&models.Role{}).Where("app_id = ?", appID).Count(&total)
 	}
-
-	// 获取总数
-	config.DB.Model(&models.Role{}).Where("app_id = ?", appID).Count(&total)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"data": roles,
@@ -85,7 +93,7 @@ func (c *AppResourceController) CreateRole(ctx *gin.Context) {
 
 	var req struct {
 		Name        string `json:"name" binding:"required"`
-		Code        string `json:"code" binding:"required"`
+		Code        string `json:"code"`
 		Description string `json:"description"`
 		Status      int    `json:"status"`
 	}
@@ -95,9 +103,26 @@ func (c *AppResourceController) CreateRole(ctx *gin.Context) {
 		return
 	}
 
+	// 自动生成编码（如果未提供）
+	code := req.Code
+	if code == "" {
+		for i := 0; i < 5; i++ {
+			candidate := utils.GenerateShortCode(10)
+			var exists models.Role
+			if err := config.DB.Where("app_id = ? AND code = ?", appID, candidate).First(&exists).Error; err != nil {
+				code = candidate
+				break
+			}
+		}
+		if code == "" {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "生成角色编码失败"})
+			return
+		}
+	}
+
 	// 检查角色编码是否已存在
 	var existingRole models.Role
-	if err := config.DB.Where("app_id = ? AND code = ?", appID, req.Code).First(&existingRole).Error; err == nil {
+	if err := config.DB.Where("app_id = ? AND code = ?", appID, code).First(&existingRole).Error; err == nil {
 		ctx.JSON(http.StatusConflict, gin.H{"error": "角色编码已存在"})
 		return
 	}
@@ -106,7 +131,7 @@ func (c *AppResourceController) CreateRole(ctx *gin.Context) {
 	role := models.Role{
 		AppID:       appID,
 		Name:        req.Name,
-		Code:        req.Code,
+		Code:        code,
 		Description: req.Description,
 		Status:      req.Status,
 	}
@@ -126,7 +151,7 @@ func (c *AppResourceController) UpdateRole(ctx *gin.Context) {
 
 	var req struct {
 		Name        string `json:"name"`
-		Code        string `json:"code"`
+		// Code 禁止修改
 		Description string `json:"description"`
 		Status      int    `json:"status"`
 	}
@@ -142,13 +167,10 @@ func (c *AppResourceController) UpdateRole(ctx *gin.Context) {
 		return
 	}
 
-	// 更新角色信息
+	// 更新角色信息（不允许修改编码）
 	updates := make(map[string]interface{})
 	if req.Name != "" {
 		updates["name"] = req.Name
-	}
-	if req.Code != "" {
-		updates["code"] = req.Code
 	}
 	if req.Description != "" {
 		updates["description"] = req.Description
@@ -198,14 +220,22 @@ func (c *AppResourceController) ListPermissions(ctx *gin.Context) {
 	var permissions []models.Permission
 	var total int64
 
-	// 获取权限列表
-	if err := config.DB.Where("app_id = ?", appID).Offset(offset).Limit(size).Find(&permissions).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取权限列表失败"})
-		return
+	// 系统级管理员且未指定 app_id 时，返回全部应用的权限
+	if middleware.CanAccessAnyApp(ctx) && ctx.Query("app_id") == "" {
+		if err := config.DB.Offset(offset).Limit(size).Find(&permissions).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取权限列表失败"})
+			return
+		}
+		config.DB.Model(&models.Permission{}).Count(&total)
+	} else {
+		// 获取权限列表（限定目标应用）
+		if err := config.DB.Where("app_id = ?", appID).Offset(offset).Limit(size).Find(&permissions).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取权限列表失败"})
+			return
+		}
+		// 获取总数
+		config.DB.Model(&models.Permission{}).Where("app_id = ?", appID).Count(&total)
 	}
-
-	// 获取总数
-	config.DB.Model(&models.Permission{}).Where("app_id = ?", appID).Count(&total)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"data": permissions,
@@ -223,7 +253,7 @@ func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
 
 	var req struct {
 		Name        string `json:"name" binding:"required"`
-		Code        string `json:"code" binding:"required"`
+		Code        string `json:"code"`
 		Resource    string `json:"resource" binding:"required"`
 		Action      string `json:"action" binding:"required"`
 		Description string `json:"description"`
@@ -235,9 +265,26 @@ func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
 		return
 	}
 
+	// 自动生成编码（如果未提供）
+	code := req.Code
+	if code == "" {
+		for i := 0; i < 5; i++ {
+			candidate := utils.GenerateShortCode(10)
+			var exists models.Permission
+			if err := config.DB.Where("app_id = ? AND code = ?", appID, candidate).First(&exists).Error; err != nil {
+				code = candidate
+				break
+			}
+		}
+		if code == "" {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "生成权限编码失败"})
+			return
+		}
+	}
+
 	// 检查权限编码是否已存在
 	var existingPermission models.Permission
-	if err := config.DB.Where("app_id = ? AND code = ?", appID, req.Code).First(&existingPermission).Error; err == nil {
+	if err := config.DB.Where("app_id = ? AND code = ?", appID, code).First(&existingPermission).Error; err == nil {
 		ctx.JSON(http.StatusConflict, gin.H{"error": "权限编码已存在"})
 		return
 	}
@@ -246,7 +293,7 @@ func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
 	permission := models.Permission{
 		AppID:       appID,
 		Name:        req.Name,
-		Code:        req.Code,
+		Code:        code,
 		Resource:    req.Resource,
 		Action:      req.Action,
 		Description: req.Description,
@@ -268,7 +315,7 @@ func (c *AppResourceController) UpdatePermission(ctx *gin.Context) {
 
 	var req struct {
 		Name        string `json:"name"`
-		Code        string `json:"code"`
+		// Code 禁止修改
 		Resource    string `json:"resource"`
 		Action      string `json:"action"`
 		Description string `json:"description"`
@@ -286,13 +333,10 @@ func (c *AppResourceController) UpdatePermission(ctx *gin.Context) {
 		return
 	}
 
-	// 更新权限信息
+	// 更新权限信息（不允许修改编码）
 	updates := make(map[string]interface{})
 	if req.Name != "" {
 		updates["name"] = req.Name
-	}
-	if req.Code != "" {
-		updates["code"] = req.Code
 	}
 	if req.Resource != "" {
 		updates["resource"] = req.Resource

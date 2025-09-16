@@ -6,23 +6,28 @@ export const getRoles = (params = {}) => {
 }
 
 export const createRole = (data) => {
-  return api.post('/app/roles', data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.post('/app/roles', data, { params })
 }
 
 export const updateRole = (id, data) => {
-  return api.put(`/app/roles/${id}`, data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.put(`/app/roles/${id}`, data, { params })
 }
 
-export const deleteRole = (id) => {
-  return api.delete(`/app/roles/${id}`)
+export const deleteRole = (id, appId) => {
+  const params = appId ? { app_id: appId } : undefined
+  return api.delete(`/app/roles/${id}`, { params })
 }
 
 export const assignRolePermissions = (id, data) => {
-  return api.post(`/app/roles/${id}/permissions`, data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.post(`/app/roles/${id}/permissions`, data, { params })
 }
 
-export const getRolePermissions = (id) => {
-  return api.get(`/app/roles/${id}/permissions`)
+export const getRolePermissions = (id, appId) => {
+  const params = appId ? { app_id: appId } : undefined
+  return api.get(`/app/roles/${id}/permissions`, { params })
 }
 
 // 权限管理
@@ -31,15 +36,18 @@ export const getPermissions = (params = {}) => {
 }
 
 export const createPermission = (data) => {
-  return api.post('/app/permissions', data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.post('/app/permissions', data, { params })
 }
 
 export const updatePermission = (id, data) => {
-  return api.put(`/app/permissions/${id}`, data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.put(`/app/permissions/${id}`, data, { params })
 }
 
-export const deletePermission = (id) => {
-  return api.delete(`/app/permissions/${id}`)
+export const deletePermission = (id, appId) => {
+  const params = appId ? { app_id: appId } : undefined
+  return api.delete(`/app/permissions/${id}`, { params })
 }
 
 // 用户管理
@@ -48,19 +56,23 @@ export const getUsers = (params = {}) => {
 }
 
 export const createUser = (data) => {
-  return api.post('/app/users', data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.post('/app/users', data, { params })
 }
 
 export const updateUser = (id, data) => {
-  return api.put(`/app/users/${id}`, data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.put(`/app/users/${id}`, data, { params })
 }
 
-export const deleteUser = (id) => {
-  return api.delete(`/app/users/${id}`)
+export const deleteUser = (id, appId) => {
+  const params = appId ? { app_id: appId } : undefined
+  return api.delete(`/app/users/${id}`, { params })
 }
 
 export const assignUserRoles = (id, data) => {
-  return api.post(`/app/users/${id}/roles`, data)
+  const params = data?.app_id ? { app_id: data.app_id } : undefined
+  return api.post(`/app/users/${id}/roles`, data, { params })
 }
 
 export const getUserRoles = (id) => {

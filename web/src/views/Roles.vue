@@ -139,9 +139,7 @@
         <el-form-item label="角色名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入角色名称" />
         </el-form-item>
-        <el-form-item label="角色编码" prop="code">
-          <el-input v-model="form.code" placeholder="请输入角色编码" />
-        </el-form-item>
+        
         <el-form-item label="描述" prop="description">
           <el-input
             v-model="form.description"
@@ -240,7 +238,6 @@ const form = reactive({
   id: null,
   app_id: '',
   name: '',
-  code: '',
   description: '',
   status: 1
 })
@@ -252,12 +249,7 @@ const formRules = {
   name: [
     { required: true, message: '请输入角色名称', trigger: 'blur' }
   ],
-  code: [
-    { required: true, message: '请输入角色编码', trigger: 'blur' }
-  ],
-  description: [
-    { required: true, message: '请输入角色描述', trigger: 'blur' }
-  ]
+  description: []
 }
 
 const treeProps = {
@@ -349,6 +341,10 @@ const handleEdit = (row) => {
   isEdit.value = true
   dialogVisible.value = true
   Object.assign(form, { ...row })
+  // 防御：不允许手工编辑或残留 code 字段
+  if (Object.prototype.hasOwnProperty.call(form, 'code')) {
+    delete form.code
+  }
 }
 
 // 管理权限
@@ -419,7 +415,7 @@ const handleDelete = async (row) => {
       }
     )
     
-    await deleteRole(row.id)
+    await deleteRole(row.id, row.app_id)
     ElMessage.success('删除成功')
     loadRoles()
   } catch (error) {
@@ -437,10 +433,16 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     submitLoading.value = true
     
+    const payload = {
+      app_id: form.app_id,
+      name: form.name,
+      description: form.description,
+      status: form.status
+    }
     if (isEdit.value) {
-      await updateRole(form.id, form)
+      await updateRole(form.id, payload)
     } else {
-      await createRole(form)
+      await createRole(payload)
     }
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
     
@@ -459,7 +461,6 @@ const resetForm = () => {
     id: null,
     app_id: isAppAdmin.value ? currentAppId.value : '',
     name: '',
-    code: '',
     description: '',
     status: 1
   })

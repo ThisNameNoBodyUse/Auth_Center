@@ -865,7 +865,7 @@ const handleDelete = async (row) => {
       }
     )
     
-    await deleteUser(row.id)
+    await deleteUser(row.id, row.app_id)
     ElMessage.success('删除成功')
     loadUsers()
   } catch (error) {
