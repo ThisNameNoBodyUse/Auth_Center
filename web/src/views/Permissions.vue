@@ -35,15 +35,19 @@
           />
         </el-select>
         <el-select
-          v-model="searchForm.resource"
-          placeholder="选择资源类型"
+          v-model="searchForm.action"
+          placeholder="请求方法"
           style="width: 150px; margin-right: 10px"
           clearable
         >
-          <el-option label="全部资源" value="" />
-          <el-option label="菜单" value="menu" />
-          <el-option label="按钮" value="button" />
-          <el-option label="API" value="api" />
+          <el-option label="全部方法" value="" />
+          <el-option label="GET" value="GET" />
+          <el-option label="POST" value="POST" />
+          <el-option label="PUT" value="PUT" />
+          <el-option label="DELETE" value="DELETE" />
+          <el-option label="PATCH" value="PATCH" />
+          <el-option label="HEAD" value="HEAD" />
+          <el-option label="OPTIONS" value="OPTIONS" />
         </el-select>
         <el-button type="primary" @click="handleSearch">
           <el-icon><Search /></el-icon>
@@ -97,17 +101,10 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="handleEdit(row)">
               编辑
-            </el-button>
-            <el-button
-              type="warning"
-              size="small"
-              @click="handleManageAPIs(row)"
-            >
-              管理API
             </el-button>
             <el-button
               type="danger"
@@ -160,24 +157,19 @@
         <el-form-item label="权限名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入权限名称" />
         </el-form-item>
-        
-        <el-form-item label="资源类型" prop="resource">
-          <el-select v-model="form.resource" placeholder="请选择资源类型" style="width: 100%">
-            <el-option label="菜单" value="menu" />
-            <el-option label="按钮" value="button" />
-            <el-option label="API" value="api" />
-            <el-option label="数据" value="data" />
+        <el-form-item label="请求方法" prop="method">
+          <el-select v-model="form.method" placeholder="请选择请求方法" style="width: 100%">
+            <el-option label="GET" value="GET" />
+            <el-option label="POST" value="POST" />
+            <el-option label="PUT" value="PUT" />
+            <el-option label="DELETE" value="DELETE" />
+            <el-option label="PATCH" value="PATCH" />
+            <el-option label="HEAD" value="HEAD" />
+            <el-option label="OPTIONS" value="OPTIONS" />
           </el-select>
         </el-form-item>
-        <el-form-item label="操作类型" prop="action">
-          <el-select v-model="form.action" placeholder="请选择操作类型" style="width: 100%">
-            <el-option label="查看" value="read" />
-            <el-option label="创建" value="create" />
-            <el-option label="更新" value="update" />
-            <el-option label="删除" value="delete" />
-            <el-option label="管理" value="manage" />
-            <el-option label="全部" value="all" />
-          </el-select>
+        <el-form-item label="接口路径" prop="path">
+          <el-input v-model="form.path" placeholder="请输入相对路径，如 /api/xxx" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input
@@ -296,7 +288,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
-import { getPermissions, createPermission, updatePermission, deletePermission, getSelfApp } from '@/api/app-resources'
+import { getPermissions, createPermission, updatePermission, deletePermission, getSelfApp, getPermissionDetail } from '@/api/app-resources'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -312,7 +304,7 @@ const apiFormRef = ref()
 const searchForm = reactive({
   name: '',
   app_id: '',
-  resource: ''
+  action: ''
 })
 
 const pagination = reactive({
@@ -330,8 +322,8 @@ const form = reactive({
   id: null,
   app_id: '',
   name: '',
-  resource: '',
-  action: '',
+  method: '',
+  path: '',
   description: '',
   status: 1
 })
@@ -349,11 +341,11 @@ const formRules = {
   name: [
     { required: true, message: '请输入权限名称', trigger: 'blur' }
   ],
-  resource: [
-    { required: true, message: '请选择资源类型', trigger: 'change' }
+  method: [
+    { required: true, message: '请选择请求方法', trigger: 'change' }
   ],
-  action: [
-    { required: true, message: '请选择操作类型', trigger: 'change' }
+  path: [
+    { required: true, message: '请输入接口路径', trigger: 'blur' }
   ],
   description: []
 }
@@ -391,15 +383,16 @@ const getResourceType = (resource) => {
   return types[resource] || 'info'
 }
 
-// 获取操作类型标签类型
+// 获取操作类型标签类型（HTTP方法配色更好看）
 const getActionType = (action) => {
   const types = {
-    read: 'info',
-    create: 'success',
-    update: 'warning',
-    delete: 'danger',
-    manage: 'primary',
-    all: 'danger'
+    GET: 'success',
+    POST: 'primary',
+    PUT: 'warning',
+    DELETE: 'danger',
+    PATCH: 'info',
+    HEAD: 'info',
+    OPTIONS: 'info'
   }
   return types[action] || 'info'
 }
@@ -466,7 +459,7 @@ const handleSearch = () => {
 const handleReset = () => {
   searchForm.name = ''
   searchForm.app_id = isAppAdmin.value ? currentAppId.value : ''
-  searchForm.resource = ''
+  searchForm.action = ''
   pagination.page = 1
   loadPermissions()
 }
@@ -482,10 +475,32 @@ const showCreateDialog = () => {
 }
 
 // 编辑权限
-const handleEdit = (row) => {
+const handleEdit = async (row) => {
   isEdit.value = true
   dialogVisible.value = true
-  Object.assign(form, { ...row })
+  try {
+    const detail = await getPermissionDetail(row.id, row.app_id)
+    Object.assign(form, {
+      id: detail.id,
+      app_id: detail.app_id,
+      name: detail.name,
+      method: detail.method || detail.action,
+      path: detail.path || '',
+      description: detail.description,
+      status: typeof detail.status === 'number' ? detail.status : 1
+    })
+  } catch (e) {
+    // 回退到列表数据尽量填充
+    Object.assign(form, {
+      id: row.id,
+      app_id: row.app_id,
+      name: row.name,
+      method: row.action,
+      path: '',
+      description: row.description,
+      status: row.status ?? 1
+    })
+  }
 }
 
 // 管理API
@@ -597,10 +612,10 @@ const handleSubmit = async () => {
     const payload = {
       app_id: form.app_id,
       name: form.name,
-      resource: form.resource,
-      action: form.action,
+      method: form.method,
+      path: form.path,
       description: form.description,
-      status: form.status
+      status: (form.status === 0 || form.status === '0' || form.status === false) ? 0 : 1
     }
     if (isEdit.value) {
       await updatePermission(form.id, payload)
@@ -624,8 +639,8 @@ const resetForm = () => {
     id: null,
     app_id: isAppAdmin.value ? currentAppId.value : '',
     name: '',
-    resource: '',
-    action: '',
+    method: '',
+    path: '',
     description: '',
     status: 1
   })
@@ -685,6 +700,16 @@ watch(() => user.value, (val) => {
 </script>
 
 <style scoped>
+/* 确保操作列按钮在同一行显示并保持间距 */
+:deep(.el-table .el-button + .el-button) {
+  margin-left: 8px;
+}
+
+/* 统一操作列的最小宽度，避免换行 */
+:deep(.el-table .el-table__row .el-table__cell .cell) {
+  white-space: nowrap;
+}
+
 .permissions-page {
   padding: 0;
 }

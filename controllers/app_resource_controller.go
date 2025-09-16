@@ -150,7 +150,7 @@ func (c *AppResourceController) UpdateRole(ctx *gin.Context) {
 	roleID := ctx.Param("id")
 
 	var req struct {
-		Name        string `json:"name"`
+		Name string `json:"name"`
 		// Code 禁止修改
 		Description string `json:"description"`
 		Status      int    `json:"status"`
@@ -252,10 +252,14 @@ func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
 	appID := c.getTargetAppID(ctx)
 
 	var req struct {
-		Name        string `json:"name" binding:"required"`
-		Code        string `json:"code"`
-		Resource    string `json:"resource" binding:"required"`
-		Action      string `json:"action" binding:"required"`
+		Name string `json:"name" binding:"required"`
+		Code string `json:"code"`
+		// 资源类型由前端简化为 API，此处保留兼容
+		Resource string `json:"resource"`
+		// 方法与路径
+		Method      string `json:"method" binding:"required"`
+		Path        string `json:"path" binding:"required"`
+		Action      string `json:"action"`
 		Description string `json:"description"`
 		Status      int    `json:"status"`
 	}
@@ -289,23 +293,68 @@ func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
 		return
 	}
 
-	// 创建权限
+	// 创建权限（资源固定为 api，动作用方法名）
 	permission := models.Permission{
 		AppID:       appID,
 		Name:        req.Name,
 		Code:        code,
-		Resource:    req.Resource,
-		Action:      req.Action,
+		Resource:    "api",
+		Action:      req.Method,
 		Description: req.Description,
 		Status:      req.Status,
 	}
 
-	if err := config.DB.Create(&permission).Error; err != nil {
+	// 显式选择字段，确保 Status=0 时也会写入，不受 gorm default tag/DB 默认值影响
+	if err := config.DB.Select("app_id", "name", "code", "resource", "action", "description", "status").Create(&permission).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "创建权限失败"})
 		return
 	}
 
+	// 创建对应的 API 记录
+	api := models.API{
+		AppID:        appID,
+		Path:         req.Path,
+		Method:       req.Method,
+		Description:  req.Description,
+		PermissionID: permission.ID,
+		Status:       1,
+	}
+	if err := config.DB.Create(&api).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "创建API失败"})
+		return
+	}
+
 	ctx.JSON(http.StatusCreated, gin.H{"data": permission})
+}
+
+// GetPermissionDetail 获取权限详情（含API信息）
+func (c *AppResourceController) GetPermissionDetail(ctx *gin.Context) {
+	appID := c.getTargetAppID(ctx)
+	permissionID := ctx.Param("id")
+
+	var permission models.Permission
+	if err := config.DB.Where("id = ? AND app_id = ?", permissionID, appID).First(&permission).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "权限不存在"})
+		return
+	}
+
+	var api models.API
+	// 找到与该权限关联的API，若不存在则返回空路径方法
+	_ = config.DB.Where("permission_id = ? AND app_id = ?", permission.ID, appID).First(&api).Error
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"id":          permission.ID,
+			"app_id":      permission.AppID,
+			"name":        permission.Name,
+			"code":        permission.Code,
+			"description": permission.Description,
+			"status":      permission.Status,
+			"action":      permission.Action,
+			"method":      api.Method,
+			"path":        api.Path,
+		},
+	})
 }
 
 // UpdatePermission 更新权限
@@ -314,7 +363,7 @@ func (c *AppResourceController) UpdatePermission(ctx *gin.Context) {
 	permissionID := ctx.Param("id")
 
 	var req struct {
-		Name        string `json:"name"`
+		Name string `json:"name"`
 		// Code 禁止修改
 		Resource    string `json:"resource"`
 		Action      string `json:"action"`

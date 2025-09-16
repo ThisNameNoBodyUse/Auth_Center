@@ -87,6 +87,7 @@ func InitRoutes(r *gin.Engine) {
 			{
 				permissions.GET("", appResourceController.ListPermissions)
 				permissions.POST("", appResourceController.CreatePermission)
+				permissions.GET("/:id", appResourceController.GetPermissionDetail)
 				permissions.PUT("/:id", appResourceController.UpdatePermission)
 				permissions.DELETE("/:id", appResourceController.DeletePermission)
 			}

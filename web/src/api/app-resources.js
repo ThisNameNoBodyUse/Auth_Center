@@ -50,6 +50,11 @@ export const deletePermission = (id, appId) => {
   return api.delete(`/app/permissions/${id}`, { params })
 }
 
+export const getPermissionDetail = (id, appId) => {
+  const params = appId ? { app_id: appId } : undefined
+  return api.get(`/app/permissions/${id}`, { params }).then(r => r.data)
+}
+
 // 用户管理
 export const getUsers = (params = {}) => {
   return api.get('/app/users', { params })

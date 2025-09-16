@@ -197,7 +197,7 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="handleEdit(row)">
               编辑
@@ -961,6 +961,14 @@ watch(() => user.value, (val) => {
 <style scoped>
 .users-page {
   padding: 0;
+}
+
+/* 操作列按钮不换行、间距统一 */
+:deep(.el-table .el-table__row .el-table__cell .cell) {
+  white-space: nowrap;
+}
+:deep(.el-table .el-button + .el-button) {
+  margin-left: 8px;
 }
 
 .page-card {

@@ -56,7 +56,7 @@ type Permission struct {
 	Resource    string         `json:"resource" gorm:"type:varchar(100)"` // 资源类型：menu, button, api等
 	Action      string         `json:"action" gorm:"type:varchar(100)"`   // 操作类型：read, write, delete等
 	Description string         `json:"description"`
-	Status      int            `json:"status" gorm:"default:1"`
+	Status      int            `json:"status" gorm:"default:0"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
