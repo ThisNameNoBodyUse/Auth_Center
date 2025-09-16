@@ -437,7 +437,7 @@ const handleSubmit = async () => {
       app_id: form.app_id,
       name: form.name,
       description: form.description,
-      status: form.status
+      status: (form.status === 0 || form.status === '0' || form.status === false) ? 0 : 1
     }
     if (isEdit.value) {
       await updateRole(form.id, payload)

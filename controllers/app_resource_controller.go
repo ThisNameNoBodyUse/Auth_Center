@@ -56,25 +56,35 @@ func (c *AppResourceController) ListRoles(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(ctx.DefaultQuery("size", "10"))
 	offset := (page - 1) * size
+	name := ctx.Query("name")
 
 	var roles []models.Role
 	var total int64
 
 	// 系统级管理员且未指定 app_id 时，返回全部应用的角色
 	if middleware.CanAccessAnyApp(ctx) && ctx.Query("app_id") == "" {
-		if err := config.DB.Offset(offset).Limit(size).Find(&roles).Error; err != nil {
+		tx := config.DB.Model(&models.Role{})
+		if name != "" {
+			tx = tx.Where("name LIKE ?", "%"+name+"%")
+		}
+		if err := tx.Offset(offset).Limit(size).Find(&roles).Error; err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取角色列表失败"})
 			return
 		}
-		config.DB.Model(&models.Role{}).Count(&total)
+		// 统计
+		tx.Count(&total)
 	} else {
 		// 获取角色列表（限定目标应用）
-		if err := config.DB.Where("app_id = ?", appID).Offset(offset).Limit(size).Find(&roles).Error; err != nil {
+		tx := config.DB.Model(&models.Role{}).Where("app_id = ?", appID)
+		if name != "" {
+			tx = tx.Where("name LIKE ?", "%"+name+"%")
+		}
+		if err := tx.Offset(offset).Limit(size).Find(&roles).Error; err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取角色列表失败"})
 			return
 		}
 		// 获取总数
-		config.DB.Model(&models.Role{}).Where("app_id = ?", appID).Count(&total)
+		tx.Count(&total)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -216,25 +226,40 @@ func (c *AppResourceController) ListPermissions(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(ctx.DefaultQuery("size", "10"))
 	offset := (page - 1) * size
+	name := ctx.Query("name")
+	action := ctx.Query("action")
 
 	var permissions []models.Permission
 	var total int64
 
 	// 系统级管理员且未指定 app_id 时，返回全部应用的权限
 	if middleware.CanAccessAnyApp(ctx) && ctx.Query("app_id") == "" {
-		if err := config.DB.Offset(offset).Limit(size).Find(&permissions).Error; err != nil {
+		tx := config.DB.Model(&models.Permission{})
+		if name != "" {
+			tx = tx.Where("name LIKE ?", "%"+name+"%")
+		}
+		if action != "" {
+			tx = tx.Where("action = ?", action)
+		}
+		if err := tx.Offset(offset).Limit(size).Find(&permissions).Error; err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取权限列表失败"})
 			return
 		}
-		config.DB.Model(&models.Permission{}).Count(&total)
+		tx.Count(&total)
 	} else {
 		// 获取权限列表（限定目标应用）
-		if err := config.DB.Where("app_id = ?", appID).Offset(offset).Limit(size).Find(&permissions).Error; err != nil {
+		tx := config.DB.Model(&models.Permission{}).Where("app_id = ?", appID)
+		if name != "" {
+			tx = tx.Where("name LIKE ?", "%"+name+"%")
+		}
+		if action != "" {
+			tx = tx.Where("action = ?", action)
+		}
+		if err := tx.Offset(offset).Limit(size).Find(&permissions).Error; err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "获取权限列表失败"})
 			return
 		}
-		// 获取总数
-		config.DB.Model(&models.Permission{}).Where("app_id = ?", appID).Count(&total)
+		tx.Count(&total)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -317,7 +342,6 @@ func (c *AppResourceController) CreatePermission(ctx *gin.Context) {
 		Method:       req.Method,
 		Description:  req.Description,
 		PermissionID: permission.ID,
-		Status:       1,
 	}
 	if err := config.DB.Create(&api).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "创建API失败"})

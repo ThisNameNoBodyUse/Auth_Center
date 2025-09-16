@@ -417,7 +417,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getApps } from '@/api/apps'
-import { getUsers, createUser, updateUser, deleteUser, assignUserRoles, getUserRoles, getSelfApp } from '@/api/app-resources'
+import { getUsers, createUser, updateUser, deleteUser, assignUserRoles, getUserRoles, getSelfApp, getRoles } from '@/api/app-resources'
 import { getSystemAdmins, createSystemAdmin, updateSystemAdmin, deleteSystemAdmin, resetSystemAdminPassword } from '@/api/system-admins'
 import dayjs from 'dayjs'
 
@@ -822,17 +822,17 @@ const handleManageRoles = async (row) => {
   currentUser.value = row
   roleDialogVisible.value = true
   
-  // 加载可用角色
+  // 加载可用角色（限定用户所属应用）
   try {
-    // 这里应该调用角色API，暂时用模拟数据
-    availableRoles.value = [
-      { id: 1, name: '超级管理员', code: 'super_admin' },
-      { id: 2, name: '管理员', code: 'admin' },
-      { id: 3, name: '普通用户', code: 'user' }
-    ]
-    
+    const params = { app_id: row.app_id, page: 1, size: 1000 }
+    const resp = await getRoles(params)
+    availableRoles.value = resp.data || []
+    if (!availableRoles.value.length) {
+      ElMessage.warning('当前应用暂无角色，请先到角色管理创建角色')
+    }
     // 加载用户当前角色
-    selectedRoles.value = [1] // 模拟数据
+    const rolesResp = await getUserRoles(row.id)
+    selectedRoles.value = rolesResp.role_ids || []
   } catch (error) {
     ElMessage.error('加载角色信息失败')
   }
@@ -842,7 +842,10 @@ const handleManageRoles = async (row) => {
 const handleSaveRoles = async () => {
   roleLoading.value = true
   try {
-    // 这里应该调用保存角色API
+    await assignUserRoles(currentUser.value.id, {
+      role_ids: selectedRoles.value,
+      app_id: currentUser.value.app_id
+    })
     ElMessage.success('角色保存成功')
     roleDialogVisible.value = false
   } catch (error) {

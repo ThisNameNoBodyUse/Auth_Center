@@ -9,71 +9,70 @@ import (
 // Application 应用模型
 type Application struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
-	Name        string         `json:"name" gorm:"type:varchar(191);uniqueIndex;not null"`
+	Name        string         `json:"name" gorm:"type:varchar(191);not null;uniqueIndex:uk_app_name_deleted"`
 	AppID       string         `json:"app_id" gorm:"type:varchar(191);uniqueIndex;not null"`
 	AppSecret   string         `json:"app_secret" gorm:"not null"`
 	Description string         `json:"description"`
 	Status      int            `json:"status" gorm:"default:1"` // 1:启用 0:禁用
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index;uniqueIndex:uk_app_name_deleted"`
 }
 
 // User 用户模型
 type User struct {
 	ID           uint           `json:"id" gorm:"primaryKey"`
-	AppID        string         `json:"app_id" gorm:"type:varchar(191);index;not null"`
-	Username     string         `json:"username" gorm:"type:varchar(191);uniqueIndex;not null"`
-	Email        string         `json:"email" gorm:"type:varchar(191);uniqueIndex"`
+	AppID        string         `json:"app_id" gorm:"type:varchar(191);index;not null;uniqueIndex:uk_user_app_username_deleted,priority:1;uniqueIndex:uk_user_app_email_deleted,priority:1"`
+	Username     string         `json:"username" gorm:"type:varchar(191);not null;uniqueIndex:uk_user_app_username_deleted,priority:2"`
+	Email        string         `json:"email" gorm:"type:varchar(191);uniqueIndex:uk_user_app_email_deleted,priority:2"`
 	Phone        string         `json:"phone" gorm:"type:varchar(20);index"`
 	Password     string         `json:"-" gorm:"not null"`                   // 不返回给前端
 	IsSuperAdmin bool           `json:"is_super_admin" gorm:"default:false"` // 是否为超级管理员
 	Status       int            `json:"status" gorm:"default:1"`             // 1:启用 0:禁用
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"index;uniqueIndex:uk_user_app_username_deleted,priority:3;uniqueIndex:uk_user_app_email_deleted,priority:3"`
 }
 
 // Role 角色模型
 type Role struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
-	AppID       string         `json:"app_id" gorm:"type:varchar(191);index;not null"`
+	AppID       string         `json:"app_id" gorm:"type:varchar(191);index;not null;uniqueIndex:uk_role_app_code_deleted,priority:1"`
 	Name        string         `json:"name" gorm:"type:varchar(191);not null"`
-	Code        string         `json:"code" gorm:"type:varchar(191);uniqueIndex;not null"`
+	Code        string         `json:"code" gorm:"type:varchar(191);not null;uniqueIndex:uk_role_app_code_deleted,priority:2"`
 	Description string         `json:"description"`
 	Status      int            `json:"status" gorm:"default:1"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index;uniqueIndex:uk_role_app_code_deleted,priority:3"`
 }
 
 // Permission 权限模型
 type Permission struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
-	AppID       string         `json:"app_id" gorm:"type:varchar(191);index;not null"`
+	AppID       string         `json:"app_id" gorm:"type:varchar(191);index;not null;uniqueIndex:uk_perm_app_code_deleted,priority:1"`
 	Name        string         `json:"name" gorm:"type:varchar(191);not null"`
-	Code        string         `json:"code" gorm:"type:varchar(191);not null"`
+	Code        string         `json:"code" gorm:"type:varchar(191);not null;uniqueIndex:uk_perm_app_code_deleted,priority:2"`
 	Resource    string         `json:"resource" gorm:"type:varchar(100)"` // 资源类型：menu, button, api等
 	Action      string         `json:"action" gorm:"type:varchar(100)"`   // 操作类型：read, write, delete等
 	Description string         `json:"description"`
-	Status      int            `json:"status" gorm:"default:0"`
+	Status      int            `json:"status" gorm:"default:1"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index;uniqueIndex:uk_perm_app_code_deleted,priority:3"`
 }
 
 // API API接口模型
 type API struct {
 	ID           uint           `json:"id" gorm:"primaryKey"`
-	AppID        string         `json:"app_id" gorm:"index;not null"`
-	Path         string         `json:"path" gorm:"not null"`
-	Method       string         `json:"method" gorm:"not null"`
+	AppID        string         `json:"app_id" gorm:"index;not null;uniqueIndex:uk_api_app_path_method_deleted,priority:1"`
+	Path         string         `json:"path" gorm:"not null;uniqueIndex:uk_api_app_path_method_deleted,priority:2"`
+	Method       string         `json:"method" gorm:"not null;uniqueIndex:uk_api_app_path_method_deleted,priority:3"`
 	Description  string         `json:"description"`
 	PermissionID uint           `json:"permission_id" gorm:"index"`
-	Status       int            `json:"status" gorm:"default:1"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"index;uniqueIndex:uk_api_app_path_method_deleted,priority:4"`
 }
 
 // UserRole 用户角色关联表

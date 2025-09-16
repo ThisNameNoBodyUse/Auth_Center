@@ -310,11 +310,16 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     submitLoading.value = true
     
+    const payload = {
+      name: form.name,
+      description: form.description,
+      status: (form.status === 0 || form.status === '0' || form.status === false) ? 0 : 1
+    }
     if (isEdit.value) {
-      await updateApp(form.app_id, form)
+      await updateApp(form.app_id, payload)
       ElMessage.success('更新成功')
     } else {
-      await createApp(form)
+      await createApp(payload)
       ElMessage.success('创建成功')
     }
     

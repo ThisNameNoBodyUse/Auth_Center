@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"auth-center/config"
@@ -86,6 +87,10 @@ func (s *AppService) CreateApp(req *CreateAppRequest) (*CreateAppResponse, error
 	}
 
 	if err := config.DB.Create(app).Error; err != nil {
+		// 如果因为唯一索引冲突（软删除未排除），返回更友好的错误
+		if strings.Contains(err.Error(), "Duplicate entry") {
+			return nil, fmt.Errorf("应用名称已存在: %s", req.Name)
+		}
 		return nil, fmt.Errorf("创建应用失败: %v", err)
 	}
 
